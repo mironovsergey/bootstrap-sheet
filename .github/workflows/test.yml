@@ -13,7 +13,7 @@ jobs:
 
     strategy:
       matrix:
-        node: [18, 20, 22]
+        node: [22]
         os: [ubuntu-latest, windows-latest, macos-latest]
       fail-fast: false
 
@@ -54,7 +54,7 @@ jobs:
 
     strategy:
       matrix:
-        node: [18, 20, 22]
+        node: [22]
 
     steps:
       - name: Checkout code

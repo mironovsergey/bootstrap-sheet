@@ -42,22 +42,6 @@ jobs:
           cp README.md _site/
           cp LICENSE _site/
 
-      - name: Create index redirect
-        run: |
-          cat > _site/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta http-equiv="refresh" content="0; url=./index.html">
-            <title>Redirecting...</title>
-          </head>
-          <body>
-            <p>Redirecting to <a href="./index.html">docs</a>...</p>
-          </body>
-          </html>
-          EOF
-
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
