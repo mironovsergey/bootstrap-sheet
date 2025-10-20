@@ -33,7 +33,7 @@
     "dev": "concurrently \"npm:dev:*\"",
     "dev:js": "rollup -c -w",
     "dev:css": "sass src/scss/bootstrap-sheet.scss dist/css/bootstrap-sheet.css --watch",
-    "dev:server": "http-server . -c-1 -o /docs/",
+    "dev:server": "npm run build && cp -r dist docs/ && http-server . -c-1 -o /docs/",
     "build": "npm run clean && npm run build:js && npm run build:css",
     "build:js": "rollup -c",
     "build:css": "npm run build:css:main && npm run build:css:min",
