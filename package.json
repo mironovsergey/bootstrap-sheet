@@ -68,9 +68,6 @@
     ],
     "*.{css,scss}": [
       "prettier --write"
-    ],
-    "package.json": [
-      "npm run version:update"
     ]
   },
   "repository": {
