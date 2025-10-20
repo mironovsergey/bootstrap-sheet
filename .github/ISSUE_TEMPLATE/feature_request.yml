@@ -1,0 +1,142 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for Bootstrap Sheet
+title: '[Feature]: '
+labels: ['enhancement', 'needs-triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your interest in improving Bootstrap Sheet! Please fill out the form below to suggest a new feature.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm the following before submitting your feature request.
+      options:
+        - label: I have searched for [existing issues](https://github.com/mironovsergey/bootstrap-sheet/issues) and this is not a duplicate
+          required: true
+        - label: This feature would be useful to other users, not just me
+          required: true
+        - label: I have checked the [documentation](https://github.com/mironovsergey/bootstrap-sheet#readme) and this feature doesn't already exist
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: I'm always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see.
+      placeholder: I would like to be able to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or features you've considered.
+      placeholder: I've also thought about...
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature is this?
+      options:
+        - New API method
+        - New configuration option
+        - New event
+        - Styling/CSS enhancement
+        - Accessibility improvement
+        - Performance optimization
+        - Documentation improvement
+        - Developer experience
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Critical - Blocking my use case
+        - High - Would significantly improve my workflow
+        - Medium - Nice to have
+        - Low - Minor improvement
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Describe a specific use case where this feature would be helpful.
+      placeholder: |
+        When building a mobile e-commerce app, I need to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example Implementation
+      description: If applicable, provide a code example of how you envision this feature working.
+      placeholder: |
+        ```javascript
+        const sheet = new BootstrapSheet('#mySheet', {
+          newOption: true
+        });
+
+        sheet.newMethod();
+        ```
+      render: javascript
+
+  - type: input
+    id: reference
+    attributes:
+      label: Reference Examples
+      description: Are there similar features in other libraries? Provide links if applicable.
+      placeholder: Similar to Material-UI's BottomSheet...
+
+  - type: checkboxes
+    id: breaking-change
+    attributes:
+      label: Breaking Change
+      description: Would this feature require breaking changes to the existing API?
+      options:
+        - label: This feature would require breaking changes
+        - label: This feature is backward compatible
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Are you willing to contribute to implementing this feature?
+      options:
+        - label: I am willing to submit a pull request for this feature
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, mockups, or screenshots about the feature request here.
+      placeholder: |
+        - Mockup: [attach image]
+        - Related to discussion #123
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        Thank you for your feature request! We'll review it and consider it for a future release.

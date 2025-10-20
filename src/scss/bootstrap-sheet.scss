@@ -1,0 +1,230 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// CSS Custom Properties for runtime customization
+:root {
+  --bs-sheet-zindex: #{$sheet-zindex};
+  --bs-sheet-width: #{$sheet-width};
+  --bs-sheet-max-width: #{$sheet-max-width};
+  --bs-sheet-max-height: #{$sheet-max-height};
+  --bs-sheet-bg: #{$sheet-bg};
+  --bs-sheet-backdrop-bg: #{$sheet-backdrop-bg};
+  --bs-sheet-backdrop-backdrop-filter: #{$sheet-backdrop-backdrop-filter};
+  --bs-sheet-transition-duration: #{$sheet-transition-duration};
+  --bs-sheet-transition-timing: #{$sheet-transition-timing};
+  --bs-sheet-handle-bg: #{$sheet-handle-bg};
+  --bs-sheet-handle-hover-bg: #{$sheet-handle-hover-bg};
+  --bs-sheet-handle-width: #{$sheet-handle-width};
+  --bs-sheet-handle-height: #{$sheet-handle-height};
+  --bs-sheet-handle-margin: #{$sheet-handle-margin};
+  --bs-sheet-handle-hit-area: #{$sheet-handle-hit-area};
+  --bs-sheet-padding-x: #{$sheet-padding-x};
+  --bs-sheet-padding-y: #{$sheet-padding-y};
+  --bs-sheet-header-padding-y: #{$sheet-header-padding-y};
+  --bs-sheet-body-padding-y: #{$sheet-body-padding-y};
+  --bs-sheet-footer-padding-y: #{$sheet-footer-padding-y};
+  --bs-sheet-box-shadow: #{$sheet-box-shadow};
+  --bs-sheet-border-width: #{$sheet-border-width};
+  --bs-sheet-border-color: #{$sheet-border-color};
+  --bs-sheet-border-radius: #{$sheet-border-radius};
+  --bs-sheet-focus-ring-width: #{$sheet-focus-ring-width};
+  --bs-sheet-focus-ring-color: #{$sheet-focus-ring-color};
+  --bs-sheet-shake-distance: #{$sheet-shake-distance};
+  --bs-sheet-disabled-opacity: #{$sheet-disabled-opacity};
+}
+
+// Base sheet styles
+.sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--bs-sheet-zindex);
+  display: flex;
+  flex-direction: column;
+  width: var(--bs-sheet-width);
+  max-width: var(--bs-sheet-max-width);
+  max-height: var(--bs-sheet-max-height);
+  padding-bottom: env(safe-area-inset-bottom);
+  border-radius: var(--bs-sheet-border-radius);
+  background-color: var(--bs-sheet-bg);
+  box-shadow: none;
+  will-change: transform;
+  transform: translateY(100%);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: -1;
+    height: 100vh;
+    background-color: inherit;
+    pointer-events: none;
+  }
+
+  // Remove transition during dragging
+  &:not(.dragging) {
+    @include sheet-transition(transform, box-shadow);
+  }
+
+  &.show,
+  &.showing,
+  &.dragging {
+    box-shadow: var(--bs-sheet-box-shadow);
+  }
+
+  // State classes
+  &.show {
+    transform: translateY(0);
+  }
+
+  &.showing,
+  &.hiding {
+    @include sheet-transition(transform, box-shadow);
+  }
+
+  // Dragging state - no transition for smooth dragging
+  &.dragging {
+    transition: none !important;
+    user-select: none;
+  }
+
+  &.hiding {
+    box-shadow: none;
+  }
+}
+
+// Sheet backdrop
+.sheet-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: calc(var(--bs-sheet-zindex) - 1);
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--bs-sheet-backdrop-bg);
+  backdrop-filter: var(--bs-sheet-backdrop-backdrop-filter);
+  opacity: 0;
+  @include sheet-transition(opacity);
+
+  &.show {
+    opacity: 1;
+  }
+}
+
+// Sheet handle
+.sheet-handle {
+  flex-shrink: 0;
+  position: relative;
+  display: block;
+  width: var(--bs-sheet-handle-width);
+  height: var(--bs-sheet-handle-height);
+  margin: var(--bs-sheet-handle-margin);
+  border-radius: calc(var(--bs-sheet-handle-height) / 2);
+  background-color: var(--bs-sheet-handle-bg);
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: calc((var(--bs-sheet-handle-height) + var(--bs-sheet-handle-hit-area)) / 2);
+    width: calc(var(--bs-sheet-handle-width) + var(--bs-sheet-handle-hit-area));
+    height: calc(var(--bs-sheet-handle-height) + var(--bs-sheet-handle-hit-area));
+    min-height: 44px;
+  }
+
+  &:hover {
+    background-color: var(--bs-sheet-handle-hover-bg);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:focus-visible {
+    outline: var(--bs-sheet-focus-ring-width) solid var(--bs-sheet-focus-ring-color);
+    outline-offset: 2px;
+  }
+}
+
+// Sheet sections
+.sheet-header {
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--bs-sheet-header-padding-y) var(--bs-sheet-padding-x);
+  border-bottom: 1px solid var(--bs-sheet-border-color);
+
+  .btn-close {
+    margin-left: auto;
+  }
+}
+
+.sheet-body {
+  flex: 1 1 auto;
+  padding: var(--bs-sheet-body-padding-y) var(--bs-sheet-padding-x);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  contain: layout style paint;
+}
+
+.sheet-footer {
+  flex-shrink: 0;
+  padding: var(--bs-sheet-footer-padding-y) var(--bs-sheet-padding-x);
+  border-top: 1px solid var(--bs-sheet-border-color);
+}
+
+// Sheet title
+.sheet-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.5;
+  margin-bottom: 0;
+}
+
+// Accessibility
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .sheet-backdrop {
+    transition: none !important;
+  }
+}
+
+// Sheet static shake animation
+.sheet-static-shake {
+  animation: sheet-shake 0.6s ease-in-out;
+}
+
+@keyframes sheet-shake {
+  10%,
+  90% {
+    transform: translate3d(0, -1px, 0);
+  }
+
+  20%,
+  80% {
+    transform: translate3d(0, 2px, 0);
+  }
+
+  30%,
+  50%,
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+
+  40%,
+  60% {
+    transform: translate3d(0, 4px, 0);
+  }
+}

@@ -1,0 +1,184 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in Bootstrap Sheet
+title: '[Bug]: '
+labels: ['bug', 'needs-triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the form below as completely as possible.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm the following before submitting your bug report.
+      options:
+        - label: I have searched for [existing issues](https://github.com/mironovsergey/bootstrap-sheet/issues) and this is not a duplicate
+          required: true
+        - label: I have tested this with the latest version of Bootstrap Sheet
+          required: true
+        - label: I have read the [documentation](https://github.com/mironovsergey/bootstrap-sheet#readme)
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: When I try to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+      placeholder: I expected the sheet to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened.
+      placeholder: Instead, the sheet...
+    validations:
+      required: true
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Code Sample
+      description: Please provide a minimal code sample that reproduces the issue.
+      placeholder: |
+        ```javascript
+        const sheet = new BootstrapSheet('#mySheet', {
+          backdrop: true
+        });
+        sheet.show();
+        ```
+      render: javascript
+
+  - type: input
+    id: demo
+    attributes:
+      label: Live Demo
+      description: If possible, provide a link to a live demo (CodePen, JSFiddle, StackBlitz, etc.)
+      placeholder: https://codepen.io/...
+
+  - type: dropdown
+    id: version
+    attributes:
+      label: Bootstrap Sheet Version
+      description: Which version of Bootstrap Sheet are you using?
+      options:
+        - 0.1.0
+        - main branch (development)
+        - Other (please specify in additional context)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: bootstrap-version
+    attributes:
+      label: Bootstrap Version
+      description: Which version of Bootstrap are you using?
+      options:
+        - 5.3.x
+        - 5.2.x
+        - 5.1.x
+        - 5.0.x
+        - Other (please specify in additional context)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browsers
+    attributes:
+      label: Affected Browsers
+      description: Which browser(s) are affected? Select all that apply.
+      multiple: true
+      options:
+        - Chrome/Edge (Chromium)
+        - Firefox
+        - Safari
+        - Mobile Safari (iOS)
+        - Chrome Mobile (Android)
+        - Samsung Internet
+        - Other (please specify in additional context)
+    validations:
+      required: true
+
+  - type: input
+    id: browser-version
+    attributes:
+      label: Browser Version(s)
+      description: What version(s) of the browser(s) are you using?
+      placeholder: 'Chrome 120, Firefox 121, etc.'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: Which operating system are you using?
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - iOS
+        - Android
+        - Other (please specify in additional context)
+    validations:
+      required: true
+
+  - type: textarea
+    id: console-errors
+    attributes:
+      label: Console Errors
+      description: Are there any errors in the browser console? If yes, please paste them here.
+      placeholder: |
+        TypeError: Cannot read property 'classList' of null
+            at BootstrapSheet.show (bootstrap-sheet.js:123)
+      render: shell
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here (screenshots, related issues, etc.)
+      placeholder: |
+        - This only happens when...
+        - Screenshots: [attach files]
+        - Related to issue #123
+
+  - type: checkboxes
+    id: workaround
+    attributes:
+      label: Workaround
+      description: Have you found a workaround for this issue?
+      options:
+        - label: I have found a workaround (please describe in additional context)
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        Thank you for your bug report! We'll review it as soon as possible.

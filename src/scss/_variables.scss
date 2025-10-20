@@ -1,0 +1,47 @@
+// Z-index
+$sheet-zindex: 1057 !default;
+
+// Dimensions
+$sheet-width: 100vw !default;
+$sheet-max-width: 100% !default;
+$sheet-max-height: 90vh !default;
+
+// Colors
+$sheet-bg: var(--bs-body-bg, #fff) !default;
+$sheet-backdrop-bg: rgba(0, 0, 0, 0.5) !default;
+$sheet-backdrop-backdrop-filter: blur(2px) !default;
+
+// Transitions
+$sheet-transition-duration: 0.3s !default;
+$sheet-transition-timing: ease-out !default;
+
+// Handle
+$sheet-handle-bg: var(--bs-gray-400, #dee2e6) !default;
+$sheet-handle-hover-bg: var(--bs-gray-500, #adb5bd) !default;
+$sheet-handle-width: 3rem !default;
+$sheet-handle-height: 0.25rem !default;
+$sheet-handle-margin: 0.5rem auto !default;
+$sheet-handle-hit-area: 2rem !default;
+
+// Spacing
+$sheet-padding-x: 1rem !default;
+$sheet-padding-y: 1rem !default;
+$sheet-header-padding-y: 0.75rem !default;
+$sheet-body-padding-y: 1rem !default;
+$sheet-footer-padding-y: 0.75rem !default;
+
+// Visual effects
+$sheet-box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1) !default;
+$sheet-border-width: 1px !default;
+$sheet-border-color: var(--bs-border-color, #dee2e6) !default;
+$sheet-border-radius: 1rem 1rem 0 0 !default;
+
+// Focus
+$sheet-focus-ring-width: 0.25rem !default;
+$sheet-focus-ring-color: rgba(13, 110, 253, 0.25) !default;
+
+// Animations
+$sheet-shake-distance: 10px !default;
+
+// States
+$sheet-disabled-opacity: 0.65 !default;

@@ -1,0 +1,33 @@
+# Source files
+src/
+tests/
+docs/
+scripts/
+
+# Config files
+.editorconfig
+.eslintrc.*
+.prettierrc
+.prettierignore
+*.config.js
+*.config.mjs
+.husky/
+.github/
+
+# Development files
+*.log
+*.map
+.DS_Store
+Thumbs.db
+node_modules/
+coverage/
+.nyc_output/
+
+# Git files
+.git/
+.gitignore
+
+# Documentation source
+*.md
+!README.md
+!LICENSE

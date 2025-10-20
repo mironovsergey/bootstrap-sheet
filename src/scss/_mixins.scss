@@ -1,0 +1,14 @@
+@use 'sass:list';
+@use 'variables' as *;
+
+@mixin sheet-transition($properties...) {
+  $transitions: ();
+  @each $property in $properties {
+    $transitions: list.append(
+      $transitions,
+      $property $sheet-transition-duration $sheet-transition-timing,
+      comma
+    );
+  }
+  transition: $transitions;
+}

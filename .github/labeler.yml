@@ -1,0 +1,60 @@
+# JavaScript files
+'javascript':
+  - changed-files:
+      - any-glob-to-any-file: 'src/js/**/*.js'
+
+# TypeScript definitions
+'typescript':
+  - changed-files:
+      - any-glob-to-any-file: 'src/types/**/*.d.ts'
+
+# CSS/SCSS files
+'css':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/scss/**/*.scss'
+          - 'src/scss/**/*.css'
+
+# Documentation
+'documentation':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**/*'
+
+# Tests
+'tests':
+  - changed-files:
+      - any-glob-to-any-file: 'tests/**/*'
+
+# Build/CI
+'build':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'package.json'
+          - 'package-lock.json'
+          - 'rollup.config.mjs'
+          - 'babel.config.js'
+          - 'jest.config.js'
+
+# GitHub Actions
+'github-actions':
+  - changed-files:
+      - any-glob-to-any-file: '.github/workflows/**/*'
+
+# Dependencies
+'dependencies':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'package.json'
+          - 'package-lock.json'
+
+# Configuration
+'config':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '*.config.js'
+          - '*.config.mjs'
+          - '.eslintrc*'
+          - '.prettierrc*'
+          - '.editorconfig'

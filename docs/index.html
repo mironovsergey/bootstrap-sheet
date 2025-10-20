@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bootstrap Sheet v0.1.0</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Bootstrap Sheet CSS -->
+  <link href="/dist/css/bootstrap-sheet.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      padding-top: 56px;
+    }
+
+    .bd-masthead {
+      padding: 3rem 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .bd-lead {
+      font-size: 1.125rem;
+      font-weight: 300;
+    }
+
+    .bd-example {
+      position: relative;
+      padding: 1.5rem;
+      margin: 1rem -0.75rem 0;
+      border: 1px solid #dee2e6;
+      border-radius: 0.375rem;
+    }
+
+    .bd-example::after {
+      display: block;
+      clear: both;
+      content: "";
+    }
+
+    .highlight {
+      background-color: #f8f9fa;
+      padding: 1rem;
+      border-radius: 0.375rem;
+      margin-top: 1rem;
+    }
+
+    pre {
+      margin: 0;
+    }
+
+    code {
+      color: #e83e8c;
+    }
+
+    .table> :not(caption)>*>* {
+      padding: 0.75rem;
+    }
+
+    #eventLog {
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+    }
+
+    #eventLog .event-item {
+      padding: 0.5rem;
+      border-left: 3px solid #0d6efd;
+      margin-bottom: 0.5rem;
+      background-color: #f8f9fa;
+    }
+
+    #eventLog .event-time {
+      color: #6c757d;
+      font-size: 0.75rem;
+    }
+
+    .product-img {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 0.375rem;
+    }
+
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .quantity-control input {
+      width: 60px;
+      text-align: center;
+    }
+
+    .github-user {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem;
+      border-bottom: 1px solid #dee2e6;
+      transition: background-color 0.2s;
+    }
+
+    .github-user:hover {
+      background-color: #f8f9fa;
+    }
+
+    .github-user:last-child {
+      border-bottom: none;
+    }
+
+    .github-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+    }
+
+    .location-item {
+      padding: 1rem;
+      border-bottom: 1px solid #dee2e6;
+      transition: background-color 0.2s;
+    }
+
+    .location-item:hover {
+      background-color: #f8f9fa;
+    }
+
+    .location-item:last-child {
+      border-bottom: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Bootstrap Sheet</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="#examples">Examples</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#sass">Sass</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#usage">Usage</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#options">Options</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#methods">Methods</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#events">Events</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#accessibility">Accessibility</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <div class="bd-masthead">
+    <div class="container">
+      <h1 class="display-4 fw-bold">Bootstrap Sheet</h1>
+      <p class="bd-lead">Touch-friendly bottom sheet component for Bootstrap 5 with swipe gestures, backdrop support,
+        and focus management.</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container my-5">
+
+    <!-- Introduction -->
+    <section class="mb-5">
+      <h2>Overview</h2>
+      <p>Bootstrap Sheet is a mobile-first bottom sheet component that slides up from the bottom of the viewport. It
+        supports touch gestures for intuitive interaction, keyboard navigation for accessibility, and provides a rich
+        JavaScript API for programmatic control.</p>
+      <p>Key features include:</p>
+      <ul>
+        <li>Touch-friendly swipe gestures with physics-based animations</li>
+        <li>Backdrop with blur effect and static mode</li>
+        <li>Focus trap and keyboard navigation</li>
+        <li>Full accessibility support with ARIA attributes</li>
+        <li>Customizable via Sass variables and data attributes</li>
+        <li>Event-driven architecture</li>
+      </ul>
+    </section>
+
+    <!-- Examples -->
+    <section id="examples" class="mb-5">
+      <h2 class="mb-4">Examples</h2>
+
+      <!-- Example 1: Basic -->
+      <div class="mb-5">
+        <h3>Basic example</h3>
+        <p>Click the button below to launch a basic sheet with header, body, and footer sections.</p>
+
+        <div class="bd-example">
+          <button type="button" class="btn btn-primary" data-bs-toggle="sheet" data-bs-target="#basicSheet">
+            Launch basic sheet
+          </button>
+        </div>
+
+        <div class="highlight">
+          <pre><code>&lt;!-- Button trigger --&gt;
+&lt;button type="button" class="btn btn-primary" data-bs-toggle="sheet" data-bs-target="#basicSheet"&gt;
+  Launch basic sheet
+&lt;/button&gt;
+
+&lt;!-- Sheet --&gt;
+&lt;div class="sheet" id="basicSheet"&gt;
+  &lt;div class="sheet-header"&gt;
+    &lt;h5 class="sheet-title"&gt;Sheet title&lt;/h5&gt;
+    &lt;button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"&gt;&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-body"&gt;
+    &lt;p&gt;Sheet body content goes here.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-footer"&gt;
+    &lt;button type="button" class="btn btn-secondary" data-bs-dismiss="sheet"&gt;Close&lt;/button&gt;
+    &lt;button type="button" class="btn btn-primary"&gt;Save changes&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+
+      <!-- Example 2: With Drag Handle -->
+      <div class="mb-5">
+        <h3>With drag handle</h3>
+        <p>Add a drag handle to enable swipe-to-dismiss gestures. Swipe down on the handle to close the sheet.</p>
+
+        <div class="bd-example">
+          <button type="button" class="btn btn-primary" data-bs-toggle="sheet" data-bs-target="#dragHandleSheet">
+            Launch sheet with drag handle
+          </button>
+        </div>
+
+        <div class="highlight">
+          <pre><code>&lt;div class="sheet" id="dragHandleSheet"&gt;
+  &lt;div class="sheet-handle" data-bs-drag="sheet"&gt;&lt;/div&gt;
+  &lt;div class="sheet-header"&gt;
+    &lt;h5 class="sheet-title"&gt;Swipe down to close&lt;/h5&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-body"&gt;
+    &lt;p&gt;Try swiping down on the handle above to close this sheet.&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+
+      <!-- Example 3: Scrollable Content with Scrollspy -->
+      <div class="mb-5">
+        <h3>Scrollable content</h3>
+        <p>When content exceeds the maximum height, the sheet body becomes scrollable. This example demonstrates
+          scrollspy integration.</p>
+
+        <div class="bd-example">
+          <button type="button" class="btn btn-primary" data-bs-toggle="sheet" data-bs-target="#scrollableSheet">
+            Launch scrollable sheet
+          </button>
+        </div>
+
+        <div class="highlight">
+          <pre><code>&lt;div class="sheet" id="scrollableSheet"&gt;
+  &lt;div class="sheet-header"&gt;
+    &lt;h5 class="sheet-title"&gt;Table of Contents&lt;/h5&gt;
+    &lt;button type="button" class="btn-close" data-bs-dismiss="sheet"&gt;&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-body" data-bs-spy="scroll" data-bs-target="#navbar-scrollspy"&gt;
+    &lt;!-- Long scrollable content --&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+
+      <!-- Example 4: Static Backdrop Confirmation -->
+      <div class="mb-5">
+        <h3>Static backdrop confirmation</h3>
+        <p>Use <code>data-bs-backdrop="static"</code> to prevent closing when clicking outside. Perfect for confirmation
+          dialogs.</p>
+
+        <div class="bd-example">
+          <button type="button" class="btn btn-danger" data-bs-toggle="sheet" data-bs-target="#confirmSheet">
+            Delete account
+          </button>
+        </div>
+
+        <div class="highlight">
+          <pre><code>&lt;div class="sheet" id="confirmSheet" data-bs-backdrop="static"&gt;
+  &lt;div class="sheet-header"&gt;
+    &lt;h5 class="sheet-title"&gt;
+      &lt;i class="bi bi-exclamation-triangle text-danger"&gt;&lt;/i&gt; Confirm deletion
+    &lt;/h5&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-body"&gt;
+    &lt;p&gt;Are you sure you want to delete your account? This action cannot be undone.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-footer"&gt;
+    &lt;button type="button" class="btn btn-secondary" data-bs-dismiss="sheet"&gt;Cancel&lt;/button&gt;
+    &lt;button type="button" class="btn btn-danger"&gt;Delete&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+
+      <!-- Example 5: Without Backdrop -->
+      <div class="mb-5">
+        <h3>Without backdrop</h3>
+        <p>Set <code>data-bs-backdrop="false"</code> to disable the backdrop overlay.</p>
+
+        <div class="bd-example">
+          <button type="button" class="btn btn-primary" data-bs-toggle="sheet" data-bs-target="#noBackdropSheet">
+            Launch sheet without backdrop
+          </button>
+        </div>
+
+        <div class="highlight">
+          <pre><code>&lt;div class="sheet" id="noBackdropSheet" data-bs-backdrop="false"&gt;
+  &lt;div class="sheet-header"&gt;
+    &lt;h5 class="sheet-title"&gt;No backdrop&lt;/h5&gt;
+    &lt;button type="button" class="btn-close" data-bs-dismiss="sheet"&gt;&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-body"&gt;
+    &lt;p&gt;This sheet has no backdrop overlay.&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+
+      <!-- Example 6: Action Sheet -->
+      <div class="mb-5">
+        <h3>Action sheet (iOS-style)</h3>
+
+        <div class="bd-example">
+          <button type="button" class="btn btn-primary" data-bs-toggle="sheet" data-bs-target="#actionSheet">
+            Show actions
+          </button>
+        </div>
+
+        <div class="highlight">
+          <pre><code>&lt;div class="sheet" id="actionSheet"&gt;
+  &lt;div class="sheet-body"&gt;
+    &lt;button type="button" class="btn btn-light w-100 mb-2"&gt;
+      &lt;i class="bi bi-share"&gt;&lt;/i&gt; Share
+    &lt;/button&gt;
+    &lt;button type="button" class="btn btn-light w-100 mb-2"&gt;
+      &lt;i class="bi bi-download"&gt;&lt;/i&gt; Download
+    &lt;/button&gt;
+    &lt;button type="button" class="btn btn-danger w-100 mb-2"&gt;
+      &lt;i class="bi bi-trash"&gt;&lt;/i&gt; Delete
+    &lt;/button&gt;
+    &lt;button type="button" class="btn btn-secondary w-100" data-bs-dismiss="sheet"&gt;
+      Cancel
+    &lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+
+      <!-- Example 7: Location Finder -->
+      <div class="mb-5">
+        <h3>EU Location finder with search</h3>
+        <p>Filter locations in real-time with a search input. This example demonstrates dynamic content filtering.</p>
+
+        <div class="bd-example">
+          <button type="button" class="btn btn-primary" data-bs-toggle="sheet" data-bs-target="#locationSheet">
+            <i class="bi bi-geo-alt"></i> Select country
+          </button>
+        </div>
+
+        <div class="highlight">
+          <pre><code>&lt;div class="sheet" id="locationSheet" style="max-height: 80vh;"&gt;
+  &lt;div class="sheet-header"&gt;
+    &lt;h5 class="sheet-title"&gt;Select EU Country&lt;/h5&gt;
+    &lt;button type="button" class="btn-close" data-bs-dismiss="sheet"&gt;&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class="p-3 border-bottom"&gt;
+    &lt;div class="input-group"&gt;
+      &lt;span class="input-group-text"&gt;&lt;i class="bi bi-search"&gt;&lt;/i&gt;&lt;/span&gt;
+      &lt;input type="text" class="form-control" id="locationSearch" placeholder="Search countries..."&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-body" id="locationList"&gt;
+    &lt;!-- Dynamically populated --&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+
+      <!-- Example 8: Multi-step Form -->
+      <div class="mb-5">
+        <h3>Multi-step form</h3>
+        <p>Create wizard-like forms with multiple steps. Navigation between steps is handled with JavaScript.</p>
+
+        <div class="bd-example">
+          <button type="button" class="btn btn-primary" data-bs-toggle="sheet" data-bs-target="#formSheet">
+            <i class="bi bi-pencil"></i> Fill form
+          </button>
+        </div>
+
+        <div class="highlight">
+          <pre><code>&lt;div class="sheet" id="formSheet"&gt;
+  &lt;div class="sheet-header"&gt;
+    &lt;h5 class="sheet-title"&gt;Registration Form&lt;/h5&gt;
+    &lt;button type="button" class="btn-close" data-bs-dismiss="sheet"&gt;&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-body"&gt;
+    &lt;!-- Step 1: Personal Info --&gt;
+    &lt;div class="form-step" id="step1"&gt;
+      &lt;h6 class="mb-3"&gt;Step 1: Personal Information&lt;/h6&gt;
+      &lt;!-- Form fields --&gt;
+    &lt;/div&gt;
+    &lt;!-- Step 2: Address --&gt;
+    &lt;div class="form-step d-none" id="step2"&gt;
+      &lt;h6 class="mb-3"&gt;Step 2: Address&lt;/h6&gt;
+      &lt;!-- Form fields --&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-footer"&gt;
+    &lt;button type="button" class="btn btn-secondary" id="prevBtn"&gt;Previous&lt;/button&gt;
+    &lt;button type="button" class="btn btn-primary" id="nextBtn"&gt;Next&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+
+      <!-- Example 9: Events Handling -->
+      <div class="mb-5">
+        <h3>Events handling</h3>
+        <p>Bootstrap Sheet fires several events during its lifecycle. Monitor them in real-time below.</p>
+
+        <div class="bd-example">
+          <button type="button" class="btn btn-primary" data-bs-toggle="sheet" data-bs-target="#eventsSheet">
+            Launch sheet to trigger events
+          </button>
+
+          <div class="mt-3">
+            <h6>Event Log:</h6>
+            <div id="eventLog" class="border rounded p-3 bg-light">
+              <small class="text-muted">Open the sheet to see events...</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="highlight">
+          <pre><code>const sheetEl = document.getElementById('eventsSheet');
+sheetEl.addEventListener('show.bs.sheet', (e) => {
+  console.log('Sheet is about to show');
+});
+sheetEl.addEventListener('shown.bs.sheet', (e) => {
+  console.log('Sheet is now visible');
+});
+sheetEl.addEventListener('hide.bs.sheet', (e) => {
+  console.log('Sheet is about to hide');
+});
+sheetEl.addEventListener('hidden.bs.sheet', (e) => {
+  console.log('Sheet is now hidden');
+});
+sheetEl.addEventListener('slide.bs.sheet', (e) => {
+  console.log('Slide event:', e.detail);
+});</code></pre>
+        </div>
+      </div>
+
+      <!-- Example 10: GitHub User Search -->
+      <div class="mb-5">
+        <h3>GitHub user search</h3>
+        <p>Search GitHub users with live API integration. Results are displayed with avatars and user information.</p>
+
+        <div class="bd-example">
+          <button type="button" class="btn btn-primary" data-bs-toggle="sheet" data-bs-target="#githubSheet">
+            <i class="bi bi-github"></i> Search GitHub users
+          </button>
+        </div>
+
+        <div class="highlight">
+          <pre><code>&lt;div class="sheet" id="githubSheet"&gt;
+  &lt;div class="sheet-header"&gt;
+    &lt;h5 class="sheet-title"&gt;GitHub User Search&lt;/h5&gt;
+    &lt;button type="button" class="btn-close" data-bs-dismiss="sheet"&gt;&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class="p-3 border-bottom"&gt;
+    &lt;div class="input-group"&gt;
+      &lt;span class="input-group-text"&gt;&lt;i class="bi bi-search"&gt;&lt;/i&gt;&lt;/span&gt;
+      &lt;input type="text" class="form-control" id="githubSearch" placeholder="Search users..."&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-body" id="githubResults"&gt;
+    &lt;!-- Dynamically populated --&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+
+      <!-- Example 11: Shopping Cart -->
+      <div class="mb-5">
+        <h3>Shopping cart</h3>
+        <p>Interactive shopping cart with quantity controls and live total calculation.</p>
+
+        <div class="bd-example">
+          <button type="button" class="btn btn-primary" data-bs-toggle="sheet" data-bs-target="#cartSheet">
+            <i class="bi bi-cart"></i> View cart <span class="badge bg-danger" id="cartBadge">3</span>
+          </button>
+        </div>
+
+        <div class="highlight">
+          <pre><code>&lt;div class="sheet" id="cartSheet"&gt;
+  &lt;div class="sheet-header"&gt;
+    &lt;h5 class="sheet-title"&gt;Shopping Cart&lt;/h5&gt;
+    &lt;button type="button" class="btn-close" data-bs-dismiss="sheet"&gt;&lt;/button&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-body" id="cartItems"&gt;
+    &lt;!-- Dynamically populated --&gt;
+  &lt;/div&gt;
+  &lt;div class="sheet-footer"&gt;
+    &lt;div class="d-flex justify-content-between align-items-center w-100"&gt;
+      &lt;h5 class="mb-0"&gt;Total: &lt;span id="cartTotal"&gt;$0.00&lt;/span&gt;&lt;/h5&gt;
+      &lt;button type="button" class="btn btn-success" id="checkoutBtn"&gt;Checkout&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Sass Variables -->
+    <section id="sass" class="mb-5">
+      <h2 class="mb-4">Sass variables</h2>
+      <p>Customize the sheet appearance by overriding these Sass variables:</p>
+
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Variable</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>$sheet-zindex</code></td>
+              <td><code>1057</code></td>
+              <td>Z-index for the sheet</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-width</code></td>
+              <td><code>100vw</code></td>
+              <td>Sheet width</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-max-width</code></td>
+              <td><code>100%</code></td>
+              <td>Maximum sheet width</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-max-height</code></td>
+              <td><code>90vh</code></td>
+              <td>Maximum sheet height</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-bg</code></td>
+              <td><code>var(--bs-body-bg, #fff)</code></td>
+              <td>Background color</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-backdrop-bg</code></td>
+              <td><code>rgba(0, 0, 0, 0.5)</code></td>
+              <td>Backdrop background color</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-backdrop-backdrop-filter</code></td>
+              <td><code>blur(2px)</code></td>
+              <td>Backdrop blur effect</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-transition-duration</code></td>
+              <td><code>0.3s</code></td>
+              <td>Animation duration</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-transition-timing</code></td>
+              <td><code>ease-out</code></td>
+              <td>Animation timing function</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-handle-bg</code></td>
+              <td><code>var(--bs-gray-400, #dee2e6)</code></td>
+              <td>Handle background color</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-handle-hover-bg</code></td>
+              <td><code>var(--bs-gray-500, #adb5bd)</code></td>
+              <td>Handle hover background</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-handle-width</code></td>
+              <td><code>3rem</code></td>
+              <td>Handle width</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-handle-height</code></td>
+              <td><code>0.25rem</code></td>
+              <td>Handle height</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-handle-margin</code></td>
+              <td><code>0.5rem auto</code></td>
+              <td>Handle margin</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-padding-x</code></td>
+              <td><code>1rem</code></td>
+              <td>Horizontal padding</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-padding-y</code></td>
+              <td><code>1rem</code></td>
+              <td>Vertical padding</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-header-padding-y</code></td>
+              <td><code>0.75rem</code></td>
+              <td>Header vertical padding</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-body-padding-y</code></td>
+              <td><code>1rem</code></td>
+              <td>Body vertical padding</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-footer-padding-y</code></td>
+              <td><code>0.75rem</code></td>
+              <td>Footer vertical padding</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-box-shadow</code></td>
+              <td><code>0 -2px 10px rgba(0, 0, 0, 0.1)</code></td>
+              <td>Box shadow</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-border-width</code></td>
+              <td><code>1px</code></td>
+              <td>Border width</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-border-color</code></td>
+              <td><code>var(--bs-border-color, #dee2e6)</code></td>
+              <td>Border color</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-border-radius</code></td>
+              <td><code>1rem 1rem 0 0</code></td>
+              <td>Border radius (top corners)</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-focus-ring-width</code></td>
+              <td><code>0.25rem</code></td>
+              <td>Focus ring width</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-focus-ring-color</code></td>
+              <td><code>rgba(13, 110, 253, 0.25)</code></td>
+              <td>Focus ring color</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-shake-distance</code></td>
+              <td><code>10px</code></td>
+              <td>Shake animation distance</td>
+            </tr>
+            <tr>
+              <td><code>$sheet-disabled-opacity</code></td>
+              <td><code>0.65</code></td>
+              <td>Disabled element opacity</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Usage -->
+    <section id="usage" class="mb-5">
+      <h2 class="mb-4">Usage</h2>
+
+      <h3>Via data attributes</h3>
+      <p>Activate a sheet without writing JavaScript. Set <code>data-bs-toggle="sheet"</code> on a controller element,
+        like a button, along with a <code>data-bs-target="#foo"</code> or <code>href="#foo"</code> to target a specific
+        sheet to toggle.</p>
+
+      <div class="highlight">
+        <pre><code>&lt;button type="button" data-bs-toggle="sheet" data-bs-target="#mySheet"&gt;
+  Launch sheet
+&lt;/button&gt;</code></pre>
+      </div>
+
+      <h3 class="mt-4">Via JavaScript</h3>
+      <p>Create a sheet with JavaScript:</p>
+
+      <div class="highlight">
+        <pre><code>const mySheet = new BootstrapSheet('#mySheet', {
+  backdrop: true,
+  keyboard: true,
+  gestures: true
+});</code></pre>
+      </div>
+
+      <h4 class="mt-3">Methods</h4>
+      <p>You can create a sheet instance with the constructor, for example:</p>
+
+      <div class="highlight">
+        <pre><code>const sheetElement = document.getElementById('mySheet');
+const sheet = new BootstrapSheet(sheetElement, {
+  backdrop: 'static'
+});</code></pre>
+      </div>
+    </section>
+
+    <!-- Options -->
+    <section id="options" class="mb-5">
+      <h2 class="mb-4">Options</h2>
+      <p>Options can be passed via data attributes or JavaScript. For data attributes, append the option name to
+        <code>data-bs-</code>, as in <code>data-bs-backdrop="static"</code>.
+      </p>
+
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>backdrop</code></td>
+              <td>boolean or string <code>'static'</code></td>
+              <td><code>true</code></td>
+              <td>Includes a backdrop element. Alternatively, specify <code>static</code> for a backdrop which doesn't
+                close the sheet when clicked.</td>
+            </tr>
+            <tr>
+              <td><code>keyboard</code></td>
+              <td>boolean</td>
+              <td><code>true</code></td>
+              <td>Closes the sheet when escape key is pressed.</td>
+            </tr>
+            <tr>
+              <td><code>focus</code></td>
+              <td>boolean</td>
+              <td><code>true</code></td>
+              <td>Puts the focus on the sheet when initialized.</td>
+            </tr>
+            <tr>
+              <td><code>gestures</code></td>
+              <td>boolean</td>
+              <td><code>true</code></td>
+              <td>Enable or disable swipe gestures.</td>
+            </tr>
+            <tr>
+              <td><code>swipeThreshold</code></td>
+              <td>number</td>
+              <td><code>50</code></td>
+              <td>Minimum swipe distance in pixels to trigger close.</td>
+            </tr>
+            <tr>
+              <td><code>velocityThreshold</code></td>
+              <td>number</td>
+              <td><code>0.5</code></td>
+              <td>Minimum velocity (px/ms) to trigger close.</td>
+            </tr>
+            <tr>
+              <td><code>minCloseDistance</code></td>
+              <td>number</td>
+              <td><code>50</code></td>
+              <td>Minimum distance for velocity-based close.</td>
+            </tr>
+            <tr>
+              <td><code>closeThresholdRatio</code></td>
+              <td>number</td>
+              <td><code>0.3</code></td>
+              <td>Ratio of sheet height (0-1) to trigger close.</td>
+            </tr>
+            <tr>
+              <td><code>animationDuration</code></td>
+              <td>number</td>
+              <td><code>300</code></td>
+              <td>Animation duration in milliseconds.</td>
+            </tr>
+            <tr>
+              <td><code>projectionTime</code></td>
+              <td>number</td>
+              <td><code>200</code></td>
+              <td>Time to project velocity in milliseconds.</td>
+            </tr>
+            <tr>
+              <td><code>dragResistanceUp</code></td>
+              <td>number</td>
+              <td><code>0.75</code></td>
+              <td>Resistance when dragging up (0-1, higher = more resistance).</td>
+            </tr>
+            <tr>
+              <td><code>dragResistanceDown</code></td>
+              <td>number</td>
+              <td><code>0.01</code></td>
+              <td>Resistance when dragging down (0-1, higher = more resistance).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Methods -->
+    <section id="methods" class="mb-5">
+      <h2 class="mb-4">Methods</h2>
+
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>show()</code></td>
+              <td>Manually opens a sheet. Returns to the caller before the sheet has actually been shown (i.e. before
+                the <code>shown.bs.sheet</code> event occurs).</td>
+            </tr>
+            <tr>
+              <td><code>hide()</code></td>
+              <td>Manually hides a sheet. Returns to the caller before the sheet has actually been hidden (i.e. before
+                the <code>hidden.bs.sheet</code> event occurs).</td>
+            </tr>
+            <tr>
+              <td><code>toggle()</code></td>
+              <td>Manually toggles a sheet. Returns to the caller before the sheet has actually been shown or hidden.
+              </td>
+            </tr>
+            <tr>
+              <td><code>dispose()</code></td>
+              <td>Destroys an element's sheet. Removes stored data and event listeners.</td>
+            </tr>
+            <tr>
+              <td><code>getInstance(element)</code></td>
+              <td>Static method which allows you to get the sheet instance associated with a DOM element.</td>
+            </tr>
+            <tr>
+              <td><code>getOrCreateInstance(element, config)</code></td>
+              <td>Static method which returns a sheet instance associated to a DOM element or creates a new one in case
+                it wasn't initialized.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="highlight">
+        <pre><code>const sheet = BootstrapSheet.getInstance('#mySheet'); // Returns a Bootstrap sheet instance
+sheet.show();
+sheet.hide();
+sheet.toggle();
+sheet.dispose();</code></pre>
+      </div>
+    </section>
+
+    <!-- Events -->
+    <section id="events" class="mb-5">
+      <h2 class="mb-4">Events</h2>
+      <p>Bootstrap Sheet's event class exposes a few events for hooking into sheet functionality. All sheet events are
+        fired at the sheet itself (i.e. at the <code>&lt;div class="sheet"&gt;</code>).</p>
+
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Event type</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>show.bs.sheet</code></td>
+              <td>This event fires immediately when the <code>show</code> instance method is called. If caused by a
+                click, the clicked element is available as the <code>relatedTarget</code> property of the event.</td>
+            </tr>
+            <tr>
+              <td><code>shown.bs.sheet</code></td>
+              <td>This event is fired when the sheet has been made visible to the user (will wait for CSS transitions to
+                complete).</td>
+            </tr>
+            <tr>
+              <td><code>hide.bs.sheet</code></td>
+              <td>This event is fired immediately when the <code>hide</code> instance method has been called.</td>
+            </tr>
+            <tr>
+              <td><code>hidden.bs.sheet</code></td>
+              <td>This event is fired when the sheet has finished being hidden from the user (will wait for CSS
+                transitions to complete).</td>
+            </tr>
+            <tr>
+              <td><code>slide.bs.sheet</code></td>
+              <td>This event fires continuously during drag/slide gestures. The event detail contains
+                <code>velocity</code>, <code>adjustedY</code>, <code>deltaY</code>, and <code>ratio</code> properties.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="highlight">
+        <pre><code>const mySheetEl = document.getElementById('mySheet');
+mySheetEl.addEventListener('hidden.bs.sheet', (event) => {
+  // do something...
+});</code></pre>
+      </div>
+    </section>
+
+    <!-- Accessibility -->
+    <section id="accessibility" class="mb-5">
+      <h2 class="mb-4">Accessibility</h2>
+
+      <h3>Live demonstration</h3>
+      <p>This example demonstrates key accessibility features including focus management and keyboard navigation.</p>
+
+      <div class="bd-example">
+        <button type="button" class="btn btn-primary" data-bs-toggle="sheet" data-bs-target="#a11ySheet">
+          Launch accessible sheet
+        </button>
+
+        <div class="alert alert-info mt-3">
+          <h6><i class="bi bi-info-circle"></i> Try these interactions:</h6>
+          <ul class="mb-0">
+            <li>Press <kbd>Tab</kbd> to navigate through focusable elements</li>
+            <li>Press <kbd>Shift</kbd>+<kbd>Tab</kbd> to navigate backwards</li>
+            <li>Press <kbd>Esc</kbd> to close the sheet</li>
+            <li>Notice how focus is trapped within the sheet</li>
+            <li>When closed, focus returns to the trigger button</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 class="mt-4">Accessibility notes</h3>
+
+      <h4>ARIA attributes</h4>
+      <p>The sheet component automatically applies the following ARIA attributes:</p>
+      <ul>
+        <li><code>role="dialog"</code> - Identifies the element as a dialog</li>
+        <li><code>aria-modal="true"</code> - Indicates the dialog is modal</li>
+        <li><code>tabindex="-1"</code> - Makes the sheet programmatically focusable</li>
+      </ul>
+
+      <h4>Focus management</h4>
+      <p>When the sheet opens:</p>
+      <ul>
+        <li>Focus is automatically moved to the first focusable element inside the sheet</li>
+        <li>Focus is trapped within the sheet - pressing Tab cycles through interactive elements</li>
+        <li>Background content is made inert (using the native <code>inert</code> attribute where supported, or
+          <code>aria-hidden</code> as fallback)
+        </li>
+      </ul>
+      <p>When the sheet closes:</p>
+      <ul>
+        <li>Focus is restored to the element that triggered the sheet</li>
+        <li>Background content becomes interactive again</li>
+      </ul>
+
+      <h4>Keyboard interaction</h4>
+      <ul>
+        <li><kbd>Esc</kbd> - Closes the sheet (if <code>keyboard</code> option is <code>true</code>)</li>
+        <li><kbd>Tab</kbd> - Moves focus to the next focusable element within the sheet</li>
+        <li><kbd>Shift</kbd>+<kbd>Tab</kbd> - Moves focus to the previous focusable element</li>
+      </ul>
+
+      <h4>Screen readers</h4>
+      <p>Screen reader users will hear the sheet announced as a dialog. Ensure you provide meaningful labels:</p>
+      <ul>
+        <li>Use <code>.sheet-title</code> for a descriptive heading</li>
+        <li>Add <code>aria-label</code> or <code>aria-labelledby</code> to the sheet if needed</li>
+        <li>Use semantic HTML within the sheet content</li>
+      </ul>
+
+      <h4>Reduced motion</h4>
+      <p>The component respects the <code>prefers-reduced-motion</code> media query. When users have reduced motion
+        enabled in their operating system, all transitions are disabled for a more comfortable experience.</p>
+    </section>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-white py-4 mt-5">
+    <div class="container text-center">
+      <p class="mb-0">Bootstrap Sheet v0.1.0 | <a href="https://github.com/mironovsergey/bootstrap-sheet"
+          class="text-white">GitHub</a> | Licensed under MIT</p>
+    </div>
+  </footer>
+
+  <!-- Sheet Components -->
+
+  <!-- Basic Sheet -->
+  <div class="sheet" id="basicSheet">
+    <div class="sheet-header">
+      <h5 class="sheet-title">Sheet title</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"></button>
+    </div>
+    <div class="sheet-body">
+      <p>This is a basic sheet example with header, body, and footer sections.</p>
+      <p>You can add any Bootstrap components or custom content here.</p>
+    </div>
+    <div class="sheet-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="sheet">Cancel</button>
+      <button type="button" class="btn btn-primary">Save changes</button>
+    </div>
+  </div>
+
+  <!-- Drag Handle Sheet -->
+  <div class="sheet" id="dragHandleSheet">
+    <div class="sheet-handle" data-bs-drag="sheet"></div>
+    <div class="sheet-header">
+      <h5 class="sheet-title">Swipe down to close</h5>
+    </div>
+    <div class="sheet-body">
+      <p>Try swiping down on the handle above to close this sheet.</p>
+      <p>The drag handle provides a visual affordance for touch gestures. When you drag down past the threshold, the
+        sheet will smoothly animate closed.</p>
+      <p>You can also customize the swipe sensitivity using the <code>swipeThreshold</code> and
+        <code>velocityThreshold</code> options.
+      </p>
+    </div>
+  </div>
+
+  <!-- Scrollable Sheet -->
+  <div class="sheet" id="scrollableSheet">
+    <div class="sheet-handle" data-bs-drag="sheet"></div>
+    <div class="sheet-header">
+      <h5 class="sheet-title">Table of Contents</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"></button>
+    </div>
+    <div class="sheet-body" data-bs-spy="scroll" data-bs-target="#navbar-scrollspy" data-bs-smooth-scroll="true">
+      <nav id="navbar-scrollspy" class="navbar navbar-light bg-light px-3 mb-3 rounded">
+        <ul class="nav nav-pills">
+          <li class="nav-item">
+            <a class="nav-link" href="#scrollspyHeading1">First</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#scrollspyHeading2">Second</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#scrollspyHeading3">Third</a>
+          </li>
+        </ul>
+      </nav>
+      <div data-bs-spy="scroll" data-bs-target="#navbar-scrollspy" data-bs-offset="0" tabindex="0">
+        <h4 id="scrollspyHeading1">First heading</h4>
+        <p>This is some placeholder content for the scrollspy page. Note that as you scroll down the page, the
+          appropriate navigation link is highlighted. It's repeated throughout the component example. We keep adding
+          some more example copy here to emphasize the scrolling and highlighting.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore
+          magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+          consequat.</p>
+
+        <h4 id="scrollspyHeading2">Second heading</h4>
+        <p>This is some placeholder content for the scrollspy page. Note that as you scroll down the page, the
+          appropriate navigation link is highlighted. It's repeated throughout the component example. We keep adding
+          some more example copy here to emphasize the scrolling and highlighting.</p>
+        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+          Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+        </p>
+
+        <h4 id="scrollspyHeading3">Third heading</h4>
+        <p>This is some placeholder content for the scrollspy page. Note that as you scroll down the page, the
+          appropriate navigation link is highlighted. It's repeated throughout the component example. We keep adding
+          some more example copy here to emphasize the scrolling and highlighting.</p>
+        <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem
+          aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Sheet -->
+  <div class="sheet" id="confirmSheet" data-bs-backdrop="static">
+    <div class="sheet-header">
+      <h5 class="sheet-title">
+        <i class="bi bi-exclamation-triangle text-danger"></i> Confirm deletion
+      </h5>
+    </div>
+    <div class="sheet-body">
+      <p><strong>Are you sure you want to delete your account?</strong></p>
+      <p>This action cannot be undone. All your data, including:</p>
+      <ul>
+        <li>Profile information</li>
+        <li>Saved preferences</li>
+        <li>Purchase history</li>
+        <li>User-generated content</li>
+      </ul>
+      <p class="mb-0">will be permanently removed from our servers.</p>
+    </div>
+    <div class="sheet-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="sheet">Cancel</button>
+      <button type="button" class="btn btn-danger" onclick="alert('Account deleted (demo only)')">Delete
+        Account</button>
+    </div>
+  </div>
+
+  <!-- No Backdrop Sheet -->
+  <div class="sheet" id="noBackdropSheet" data-bs-backdrop="false">
+    <div class="sheet-handle" data-bs-drag="sheet"></div>
+    <div class="sheet-header">
+      <h5 class="sheet-title">No backdrop</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"></button>
+    </div>
+    <div class="sheet-body">
+      <p>This sheet has no backdrop overlay, allowing you to interact with the page content behind it.</p>
+      <p>This can be useful for non-modal interactions where you want to display information without fully blocking the
+        underlying content.</p>
+    </div>
+    <div class="sheet-footer">
+      <button type="button" class="btn btn-primary" data-bs-dismiss="sheet">Close</button>
+    </div>
+  </div>
+
+  <!-- Action Sheet -->
+  <div class="sheet" id="actionSheet">
+    <div class="sheet-body">
+      <button type="button" class="btn btn-light w-100 mb-2">
+        <i class="bi bi-share"></i> Share
+      </button>
+      <button type="button" class="btn btn-light w-100 mb-2">
+        <i class="bi bi-download"></i> Download
+      </button>
+      <button type="button" class="btn btn-light w-100 mb-2">
+        <i class="bi bi-bookmark"></i> Bookmark
+      </button>
+      <button type="button" class="btn btn-light w-100 mb-2">
+        <i class="bi bi-link-45deg"></i> Copy Link
+      </button>
+      <button type="button" class="btn btn-danger w-100 mb-2">
+        <i class="bi bi-trash"></i> Delete
+      </button>
+      <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="sheet">
+        Cancel
+      </button>
+    </div>
+  </div>
+
+  <!-- Location Finder Sheet -->
+  <div class="sheet" id="locationSheet" style="height: 75vh;">
+    <div class="sheet-handle" data-bs-drag="sheet"></div>
+    <div class="sheet-header">
+      <h5 class="sheet-title">Select EU Country</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"></button>
+    </div>
+    <div class="p-3 border-bottom">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" class="form-control" id="locationSearch" placeholder="Search countries...">
+      </div>
+    </div>
+    <div class="sheet-body p-0" id="locationList">
+      <!-- Dynamically populated -->
+    </div>
+  </div>
+
+  <!-- Multi-step Form Sheet -->
+  <div class="sheet" id="formSheet">
+    <div class="sheet-handle" data-bs-drag="sheet"></div>
+    <div class="sheet-header">
+      <h5 class="sheet-title">Registration Form</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"></button>
+    </div>
+    <div class="sheet-body">
+      <!-- Step 1 -->
+      <div class="form-step" id="step1">
+        <h6 class="mb-3">Step 1 of 2: Personal Information</h6>
+        <div class="mb-3">
+          <label for="formName" class="form-label">Full Name</label>
+          <input type="text" class="form-control" id="formName" placeholder="John Doe">
+        </div>
+        <div class="mb-3">
+          <label for="formEmail" class="form-label">Email address</label>
+          <input type="email" class="form-control" id="formEmail" placeholder="john@example.com">
+        </div>
+        <div class="mb-3">
+          <label for="formPhone" class="form-label">Phone</label>
+          <input type="tel" class="form-control" id="formPhone" placeholder="+1 (555) 000-0000">
+        </div>
+      </div>
+      <!-- Step 2 -->
+      <div class="form-step d-none" id="step2">
+        <h6 class="mb-3">Step 2 of 2: Address</h6>
+        <div class="mb-3">
+          <label for="formStreet" class="form-label">Street Address</label>
+          <input type="text" class="form-control" id="formStreet" placeholder="123 Main St">
+        </div>
+        <div class="mb-3">
+          <label for="formCity" class="form-label">City</label>
+          <input type="text" class="form-control" id="formCity" placeholder="New York">
+        </div>
+        <div class="mb-3">
+          <label for="formZip" class="form-label">ZIP Code</label>
+          <input type="text" class="form-control" id="formZip" placeholder="10001">
+        </div>
+      </div>
+    </div>
+    <div class="sheet-footer">
+      <button type="button" class="btn btn-secondary d-none" id="prevBtn">Previous</button>
+      <button type="button" class="btn btn-primary" id="nextBtn">Next</button>
+      <button type="button" class="btn btn-success d-none" id="submitBtn">Submit</button>
+    </div>
+  </div>
+
+  <!-- Events Sheet -->
+  <div class="sheet" id="eventsSheet">
+    <div class="sheet-handle" data-bs-drag="sheet"></div>
+    <div class="sheet-header">
+      <h5 class="sheet-title">Events Demo</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"></button>
+    </div>
+    <div class="sheet-body">
+      <p>Open, close, or drag this sheet to see events being fired in real-time in the log above.</p>
+      <p>The following events are monitored:</p>
+      <ul>
+        <li><code>show.bs.sheet</code> - Fired when show() is called</li>
+        <li><code>shown.bs.sheet</code> - Fired when sheet is visible</li>
+        <li><code>hide.bs.sheet</code> - Fired when hide() is called</li>
+        <li><code>hidden.bs.sheet</code> - Fired when sheet is hidden</li>
+        <li><code>slide.bs.sheet</code> - Fired during drag (throttled)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- GitHub Search Sheet -->
+  <div class="sheet" id="githubSheet" style="height: 75vh;">
+    <div class="sheet-handle" data-bs-drag="sheet"></div>
+    <div class="sheet-header">
+      <h5 class="sheet-title">GitHub User Search</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"></button>
+    </div>
+    <div class="p-3 border-bottom">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" class="form-control" id="githubSearch" placeholder="Search users (e.g., octocat)...">
+      </div>
+    </div>
+    <div class="sheet-body p-0" id="githubResults">
+      <div class="p-4 text-center text-muted">
+        <i class="bi bi-github" style="font-size: 3rem;"></i>
+        <p class="mt-2">Type a username to search</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shopping Cart Sheet -->
+  <div class="sheet" id="cartSheet" style="height: 75vh;">
+    <div class="sheet-handle" data-bs-drag="sheet"></div>
+    <div class="sheet-header">
+      <h5 class="sheet-title">Shopping Cart</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"></button>
+    </div>
+    <div class="sheet-body" id="cartItems">
+      <!-- Dynamically populated -->
+    </div>
+    <div class="sheet-footer">
+      <div class="d-flex justify-content-between align-items-center w-100">
+        <h5 class="mb-0">Total: <span id="cartTotal">$0.00</span></h5>
+        <button type="button" class="btn btn-success" id="checkoutBtn">
+          <i class="bi bi-credit-card"></i> Checkout
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accessibility Demo Sheet -->
+  <div class="sheet" id="a11ySheet">
+    <div class="sheet-handle" data-bs-drag="sheet"></div>
+    <div class="sheet-header">
+      <h5 class="sheet-title">Accessibility Demo</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"></button>
+    </div>
+    <div class="sheet-body">
+      <p>This sheet demonstrates key accessibility features:</p>
+
+      <div class="mb-3">
+        <label for="demoInput1" class="form-label">First focusable input</label>
+        <input type="text" class="form-control" id="demoInput1" placeholder="Tab to next element">
+      </div>
+
+      <div class="mb-3">
+        <label for="demoSelect" class="form-label">Select option</label>
+        <select class="form-select" id="demoSelect">
+          <option>Option 1</option>
+          <option>Option 2</option>
+          <option>Option 3</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="demoCheck">
+          <label class="form-check-label" for="demoCheck">
+            I agree to the terms
+          </label>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="demoTextarea" class="form-label">Comments</label>
+        <textarea class="form-control" id="demoTextarea" rows="3"></textarea>
+      </div>
+
+      <a href="#" class="btn btn-link">This is a focusable link</a>
+    </div>
+    <div class="sheet-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="sheet">Close</button>
+      <button type="button" class="btn btn-primary">Save changes</button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="checkoutToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <i class="bi bi-check-circle-fill text-success me-2"></i>
+        <strong class="me-auto">Success</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body">
+        Your order has been placed successfully!
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Bootstrap Sheet JS -->
+  <script src="/dist/js/bootstrap-sheet.min.js"></script>
+
+  <script>
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // EU Countries data with phone codes
+    const euCountries = [
+      { name: 'Austria', code: '+43', flag: '🇦🇹' },
+      { name: 'Belgium', code: '+32', flag: '🇧🇪' },
+      { name: 'Bulgaria', code: '+359', flag: '🇧🇬' },
+      { name: 'Croatia', code: '+385', flag: '🇭🇷' },
+      { name: 'Cyprus', code: '+357', flag: '🇨🇾' },
+      { name: 'Czech Republic', code: '+420', flag: '🇨🇿' },
+      { name: 'Denmark', code: '+45', flag: '🇩🇰' },
+      { name: 'Estonia', code: '+372', flag: '🇪🇪' },
+      { name: 'Finland', code: '+358', flag: '🇫🇮' },
+      { name: 'France', code: '+33', flag: '🇫🇷' },
+      { name: 'Germany', code: '+49', flag: '🇩🇪' },
+      { name: 'Greece', code: '+30', flag: '🇬🇷' },
+      { name: 'Hungary', code: '+36', flag: '🇭🇺' },
+      { name: 'Ireland', code: '+353', flag: '🇮🇪' },
+      { name: 'Italy', code: '+39', flag: '🇮🇹' },
+      { name: 'Latvia', code: '+371', flag: '🇱🇻' },
+      { name: 'Lithuania', code: '+370', flag: '🇱🇹' },
+      { name: 'Luxembourg', code: '+352', flag: '🇱🇺' },
+      { name: 'Malta', code: '+356', flag: '🇲🇹' },
+      { name: 'Netherlands', code: '+31', flag: '🇳🇱' },
+      { name: 'Poland', code: '+48', flag: '🇵🇱' },
+      { name: 'Portugal', code: '+351', flag: '🇵🇹' },
+      { name: 'Romania', code: '+40', flag: '🇷🇴' },
+      { name: 'Slovakia', code: '+421', flag: '🇸🇰' },
+      { name: 'Slovenia', code: '+386', flag: '🇸🇮' },
+      { name: 'Spain', code: '+34', flag: '🇪🇸' },
+      { name: 'Sweden', code: '+46', flag: '🇸🇪' }
+    ];
+
+    // Render location list
+    function renderLocations(countries) {
+      const locationList = document.getElementById('locationList');
+      if (!countries.length) {
+        locationList.innerHTML = '<div class="p-4 text-center text-muted">No countries found</div>';
+        return;
+      }
+
+      locationList.innerHTML = countries.map(country => `
+        <div class="location-item">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <span style="font-size: 1.5rem;">${country.flag}</span>
+              <strong class="ms-2">${country.name}</strong>
+            </div>
+            <span class="text-muted">${country.code}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Location search
+    document.getElementById('locationSearch').addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      const filtered = euCountries.filter(country =>
+        country.name.toLowerCase().includes(query) ||
+        country.code.includes(query)
+      );
+      renderLocations(filtered);
+    });
+
+    // Initialize location list
+    document.getElementById('locationSheet').addEventListener('shown.bs.sheet', () => {
+      renderLocations(euCountries);
+    });
+
+    // Multi-step form
+    let currentStep = 1;
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+
+    nextBtn.addEventListener('click', () => {
+      step1.classList.add('d-none');
+      step2.classList.remove('d-none');
+      prevBtn.classList.remove('d-none');
+      nextBtn.classList.add('d-none');
+      submitBtn.classList.remove('d-none');
+      currentStep = 2;
+    });
+
+    prevBtn.addEventListener('click', () => {
+      step2.classList.add('d-none');
+      step1.classList.remove('d-none');
+      prevBtn.classList.add('d-none');
+      nextBtn.classList.remove('d-none');
+      submitBtn.classList.add('d-none');
+      currentStep = 1;
+    });
+
+    submitBtn.addEventListener('click', () => {
+      alert('Form submitted! (Demo only)');
+      const formSheet = BootstrapSheet.getInstance('#formSheet');
+      formSheet.hide();
+      // Reset form
+      setTimeout(() => {
+        step2.classList.add('d-none');
+        step1.classList.remove('d-none');
+        prevBtn.classList.add('d-none');
+        nextBtn.classList.remove('d-none');
+        submitBtn.classList.add('d-none');
+        currentStep = 1;
+      }, 300);
+    });
+
+    // Events logging
+    const eventLog = document.getElementById('eventLog');
+    const eventsSheet = document.getElementById('eventsSheet');
+    let slideThrottle = null;
+
+    function logEvent(eventName, detail = {}) {
+      const timestamp = new Date().toLocaleTimeString();
+      const eventItem = document.createElement('div');
+      eventItem.className = 'event-item';
+      eventItem.innerHTML = `
+        <div class="event-time">${timestamp}</div>
+        <strong>${eventName}</strong>
+        ${Object.keys(detail).length ? `<div class="small mt-1">${JSON.stringify(detail, null, 2)}</div>` : ''}
+      `;
+      eventLog.insertBefore(eventItem, eventLog.firstChild);
+
+      // Keep only last 10 events
+      while (eventLog.children.length > 10) {
+        eventLog.removeChild(eventLog.lastChild);
+      }
+    }
+
+    eventsSheet.addEventListener('show.bs.sheet', (e) => {
+      logEvent('show.bs.sheet');
+    });
+
+    eventsSheet.addEventListener('shown.bs.sheet', (e) => {
+      logEvent('shown.bs.sheet');
+    });
+
+    eventsSheet.addEventListener('hide.bs.sheet', (e) => {
+      logEvent('hide.bs.sheet');
+    });
+
+    eventsSheet.addEventListener('hidden.bs.sheet', (e) => {
+      logEvent('hidden.bs.sheet');
+    });
+
+    eventsSheet.addEventListener('slide.bs.sheet', (e) => {
+      // Throttle slide events to avoid flooding the log
+      if (!slideThrottle) {
+        logEvent('slide.bs.sheet', {
+          velocity: e.detail.velocity?.toFixed(3),
+          deltaY: Math.round(e.detail.deltaY),
+          ratio: e.detail.ratio?.toFixed(2)
+        });
+        slideThrottle = setTimeout(() => {
+          slideThrottle = null;
+        }, 100);
+      }
+    });
+
+    // GitHub user search
+    let githubTimeout = null;
+    const githubSearch = document.getElementById('githubSearch');
+    const githubResults = document.getElementById('githubResults');
+
+    githubSearch.addEventListener('input', (e) => {
+      clearTimeout(githubTimeout);
+      const query = e.target.value.trim();
+
+      if (!query) {
+        githubResults.innerHTML = `
+          <div class="p-4 text-center text-muted">
+            <i class="bi bi-github" style="font-size: 3rem;"></i>
+            <p class="mt-2">Type a username to search</p>
+          </div>
+        `;
+        return;
+      }
+
+      githubResults.innerHTML = `
+        <div class="p-4 text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      `;
+
+      githubTimeout = setTimeout(() => {
+        fetch(`https://api.github.com/search/users?q=${encodeURIComponent(query)}&per_page=10`)
+          .then(response => response.json())
+          .then(data => {
+            if (!data.items || data.items.length === 0) {
+              githubResults.innerHTML = `
+                <div class="p-4 text-center text-muted">
+                  <i class="bi bi-search" style="font-size: 3rem;"></i>
+                  <p class="mt-2">No users found</p>
+                </div>
+              `;
+              return;
+            }
+
+            githubResults.innerHTML = data.items.map(user => `
+              <a href="${escapeHtml(user.html_url)}" target="_blank" class="github-user text-decoration-none text-dark">
+                <img src="${escapeHtml(user.avatar_url)}" alt="${escapeHtml(user.login)}" class="github-avatar">
+                <div class="flex-grow-1">
+                  <div class="fw-bold">${escapeHtml(user.login)}</div>
+                  <small class="text-muted">${escapeHtml(user.html_url)}</small>
+                </div>
+                <i class="bi bi-box-arrow-up-right text-muted"></i>
+              </a>
+            `).join('');
+          })
+          .catch(error => {
+            githubResults.innerHTML = `
+              <div class="p-4 text-center text-danger">
+                <i class="bi bi-exclamation-circle" style="font-size: 3rem;"></i>
+                <p class="mt-2">Error loading results</p>
+              </div>
+            `;
+          });
+      }, 500);
+    });
+
+    // Shopping cart
+    const cartProducts = [
+      {
+        id: 1,
+        name: 'Wireless Headphones',
+        price: 79.99,
+        quantity: 1,
+        image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&h=200&fit=crop'
+      },
+      {
+        id: 2,
+        name: 'Smart Watch',
+        price: 199.99,
+        quantity: 1,
+        image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=200&fit=crop'
+      },
+      {
+        id: 3,
+        name: 'Laptop Stand',
+        price: 49.99,
+        quantity: 2,
+        image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=200&h=200&fit=crop'
+      }
+    ];
+
+    function updateCart() {
+      const cartItems = document.getElementById('cartItems');
+      const cartTotal = document.getElementById('cartTotal');
+      const cartBadge = document.getElementById('cartBadge');
+
+      const totalItems = cartProducts.reduce((sum, p) => sum + p.quantity, 0);
+      const totalPrice = cartProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+
+      cartBadge.textContent = totalItems;
+      cartTotal.textContent = `${totalPrice.toFixed(2)}`;
+
+      cartItems.innerHTML = cartProducts.map(product => `
+        <div class="border-bottom p-3">
+          <div class="d-flex gap-3">
+            <img src="${product.image}" alt="${product.name}" class="product-img">
+            <div class="flex-grow-1">
+              <h6 class="mb-1">${product.name}</h6>
+              <div class="text-muted mb-2">${product.price.toFixed(2)}</div>
+              <div class="quantity-control">
+                <button class="btn btn-sm btn-outline-secondary" onclick="updateQuantity(${product.id}, -1)">
+                  <i class="bi bi-dash"></i>
+                </button>
+                <input type="text" class="form-control form-control-sm" value="${product.quantity}" readonly>
+                <button class="btn btn-sm btn-outline-secondary" onclick="updateQuantity(${product.id}, 1)">
+                  <i class="bi bi-plus"></i>
+                </button>
+              </div>
+            </div>
+            <div class="text-end">
+              <div class="fw-bold">${(product.price * product.quantity).toFixed(2)}</div>
+              <button class="btn btn-sm btn-link text-danger p-0 mt-2" onclick="removeProduct(${product.id})">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.updateQuantity = function (productId, delta) {
+      const product = cartProducts.find(p => p.id === productId);
+      if (product) {
+        product.quantity = Math.max(1, product.quantity + delta);
+        updateCart();
+      }
+    };
+
+    window.removeProduct = function (productId) {
+      const index = cartProducts.findIndex(p => p.id === productId);
+      if (index > -1) {
+        cartProducts.splice(index, 1);
+        updateCart();
+      }
+    };
+
+    // Checkout button
+    document.getElementById('checkoutBtn').addEventListener('click', () => {
+      const toast = new bootstrap.Toast(document.getElementById('checkoutToast'));
+      toast.show();
+
+      // Close cart sheet after short delay
+      setTimeout(() => {
+        const cartSheet = BootstrapSheet.getInstance('#cartSheet');
+        cartSheet.hide();
+      }, 500);
+    });
+
+    // Initialize cart
+    document.getElementById('cartSheet').addEventListener('shown.bs.sheet', () => {
+      updateCart();
+    });
+
+    // Initialize cart badge on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      const totalItems = cartProducts.reduce((sum, p) => sum + p.quantity, 0);
+      document.getElementById('cartBadge').textContent = totalItems;
+    });
+
+    // Smooth scroll for navbar links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        const href = this.getAttribute('href');
+        if (href !== '#' && href.length > 1) {
+          const target = document.querySelector(href);
+          if (target) {
+            e.preventDefault();
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        }
+      });
+    });
+  </script>
+
+</body>
+
+</html>

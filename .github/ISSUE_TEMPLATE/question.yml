@@ -1,0 +1,82 @@
+name: Question
+description: Ask a question about using Bootstrap Sheet
+title: '[Question]: '
+labels: ['question']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question about Bootstrap Sheet? We're here to help!
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Before asking, please confirm the following.
+      options:
+        - label: I have read the [documentation](https://github.com/mironovsergey/bootstrap-sheet/tree/main/docs)
+          required: true
+        - label: I have searched for [existing issues](https://github.com/mironovsergey/bootstrap-sheet/issues) with similar questions
+          required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: How do I...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide any relevant context about what you're trying to achieve.
+      placeholder: |
+        I'm building a mobile app and trying to...
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Code Sample
+      description: If applicable, show what you've tried so far.
+      placeholder: |
+        ```javascript
+        const sheet = new BootstrapSheet('#mySheet');
+        // What should I do next?
+        ```
+      render: javascript
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Question Category
+      description: What is your question about?
+      options:
+        - Installation/Setup
+        - Configuration/Options
+        - API Methods
+        - Events
+        - Styling/CSS
+        - Accessibility
+        - Mobile/Touch
+        - Integration (React/Vue/etc)
+        - Browser Compatibility
+        - Performance
+        - Best Practices
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Any other details that might be helpful.
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        We'll do our best to answer your question promptly!

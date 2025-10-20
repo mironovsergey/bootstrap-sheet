@@ -1,0 +1,30 @@
+name: Project Automation
+
+on:
+  issues:
+    types: [opened, reopened]
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Add issue to project
+        if: github.event_name == 'issues'
+        run: |
+          echo "Issue #${{ github.event.issue.number }} created"
+          # You can add GitHub CLI commands here to add to project board
+          # gh project item-add <project-id> --owner mironovsergey --url ${{ github.event.issue.html_url }}
+
+      - name: Add PR to project
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "PR #${{ github.event.pull_request.number }} created"
+          # You can add GitHub CLI commands here to add to project board
+          # gh project item-add <project-id> --owner mironovsergey --url ${{ github.event.pull_request.html_url }}
