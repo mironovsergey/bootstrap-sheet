@@ -1,5 +1,14 @@
 # Bootstrap Sheet
 
+[![npm version](https://img.shields.io/npm/v/bootstrap-sheet)](https://www.npmjs.com/package/bootstrap-sheet)
+[![npm downloads](https://img.shields.io/npm/dm/bootstrap-sheet)](https://www.npmjs.com/package/bootstrap-sheet)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/bootstrap-sheet)](https://bundlephobia.com/package/bootstrap-sheet)
+[![License](https://img.shields.io/github/license/mironovsergey/bootstrap-sheet)](https://github.com/mironovsergey/bootstrap-sheet/blob/main/LICENSE)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/mironovsergey/bootstrap-sheet/test.yml?branch=main)](https://github.com/mironovsergey/bootstrap-sheet/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/mironovsergey/bootstrap-sheet/branch/main/graph/badge.svg)](https://codecov.io/gh/mironovsergey/bootstrap-sheet)
+[![Known Vulnerabilities](https://snyk.io/test/github/mironovsergey/bootstrap-sheet/badge.svg)](https://snyk.io/test/github/mironovsergey/bootstrap-sheet)
+[![Demo](https://img.shields.io/badge/demo-live-success)](https://mironovsergey.github.io/bootstrap-sheet/)
+
 Touch-friendly bottom sheet component for Bootstrap 5 — supports swipe gestures, backdrop, focus management, and is built with accessibility in mind.
 
 [Documentation](https://mironovsergey.github.io/bootstrap-sheet/) · [Report Bug](https://github.com/mironovsergey/bootstrap-sheet/issues) · [Request Feature](https://github.com/mironovsergey/bootstrap-sheet/issues) · [Discussions](https://github.com/mironovsergey/bootstrap-sheet/discussions)
@@ -13,6 +22,9 @@ Touch-friendly bottom sheet component for Bootstrap 5 — supports swipe gesture
   - [Installation](#installation)
     - [NPM](#npm)
     - [Yarn](#yarn)
+    - [CDN](#cdn)
+      - [jsDelivr](#jsdelivr)
+      - [unpkg](#unpkg)
     - [Download](#download)
   - [Quick Start](#quick-start)
     - [Via data attributes](#via-data-attributes)
@@ -47,6 +59,34 @@ npm install bootstrap-sheet
 yarn add bootstrap-sheet
 ```
 
+### CDN
+
+#### jsDelivr
+
+```html
+<!-- CSS -->
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap-sheet@latest/dist/css/bootstrap-sheet.min.css"
+  rel="stylesheet"
+/>
+
+<!-- JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-sheet@latest/dist/js/bootstrap-sheet.min.js"></script>
+```
+
+#### unpkg
+
+```html
+<!-- CSS -->
+<link
+  href="https://unpkg.com/bootstrap-sheet@latest/dist/css/bootstrap-sheet.min.css"
+  rel="stylesheet"
+/>
+
+<!-- JavaScript -->
+<script src="https://unpkg.com/bootstrap-sheet@latest/dist/js/bootstrap-sheet.min.js"></script>
+```
+
 ### Download
 
 [Download the latest release](https://github.com/mironovsergey/bootstrap-sheet/releases/latest) and include the compiled CSS and JavaScript files in your project.
@@ -66,7 +106,14 @@ Activate a sheet without writing JavaScript. Set `data-bs-toggle="sheet"` on a c
 </button>
 
 <!-- Sheet -->
-<div class="sheet" id="mySheet" tabindex="-1" data-bs-backdrop="true" data-bs-keyboard="true" data-bs-focus="true">
+<div
+  class="sheet"
+  id="mySheet"
+  tabindex="-1"
+  data-bs-backdrop="true"
+  data-bs-keyboard="true"
+  data-bs-focus="true"
+>
   <div class="sheet-handle" data-bs-drag="sheet"></div>
   <div class="sheet-header">
     <h5 class="sheet-title">Sheet title</h5>
@@ -109,30 +156,30 @@ Options can be passed via data attributes or JavaScript. For data attributes, ap
 
 ### UI Options
 
-| Name       | Type                             | Default | Description                                                                                                 |
-| ---------- | -------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
-| `backdrop` | boolean or `'static'`            | `true`  | Includes a backdrop element. Use `'static'` for a backdrop that doesn't close the sheet when clicked.       |
-| `keyboard` | boolean                          | `true`  | Closes the sheet when escape key is pressed.                                                                |
-| `focus`    | boolean                          | `true`  | Puts focus on the sheet when initialized and traps focus within it.                                         |
+| Name       | Type                  | Default | Description                                                                                           |
+| ---------- | --------------------- | ------- | ----------------------------------------------------------------------------------------------------- |
+| `backdrop` | boolean or `'static'` | `true`  | Includes a backdrop element. Use `'static'` for a backdrop that doesn't close the sheet when clicked. |
+| `keyboard` | boolean               | `true`  | Closes the sheet when escape key is pressed.                                                          |
+| `focus`    | boolean               | `true`  | Puts focus on the sheet when initialized and traps focus within it.                                   |
 
 ### Gesture Options
 
-| Name                  | Type    | Default | Description                                                  |
-| --------------------- | ------- | ------- | ------------------------------------------------------------ |
-| `gestures`            | boolean | `true`  | Enable/disable swipe gestures.                               |
-| `swipeThreshold`      | number  | `50`    | Minimum swipe distance (px) to trigger close.                |
-| `velocityThreshold`   | number  | `0.5`   | Minimum velocity (px/ms) to trigger close.                   |
-| `minCloseDistance`    | number  | `50`    | Minimum distance (px) for velocity-based close.              |
-| `closeThresholdRatio` | number  | `0.3`   | Ratio of sheet height (0-1) to trigger close when released.  |
+| Name                  | Type    | Default | Description                                                 |
+| --------------------- | ------- | ------- | ----------------------------------------------------------- |
+| `gestures`            | boolean | `true`  | Enable/disable swipe gestures.                              |
+| `swipeThreshold`      | number  | `50`    | Minimum swipe distance (px) to trigger close.               |
+| `velocityThreshold`   | number  | `0.5`   | Minimum velocity (px/ms) to trigger close.                  |
+| `minCloseDistance`    | number  | `50`    | Minimum distance (px) for velocity-based close.             |
+| `closeThresholdRatio` | number  | `0.3`   | Ratio of sheet height (0-1) to trigger close when released. |
 
 ### Animation Options
 
-| Name                 | Type   | Default | Description                                                      |
-| -------------------- | ------ | ------- | ---------------------------------------------------------------- |
-| `animationDuration`  | number | `300`   | Animation duration in milliseconds.                              |
-| `projectionTime`     | number | `200`   | Time (ms) to project velocity for momentum-based closing.        |
-| `dragResistanceUp`   | number | `0.75`  | Resistance when dragging up (0-1, higher = more resistance).     |
-| `dragResistanceDown` | number | `0.01`  | Resistance when dragging down (0-1, higher = more resistance).   |
+| Name                 | Type   | Default | Description                                                    |
+| -------------------- | ------ | ------- | -------------------------------------------------------------- |
+| `animationDuration`  | number | `300`   | Animation duration in milliseconds.                            |
+| `projectionTime`     | number | `200`   | Time (ms) to project velocity for momentum-based closing.      |
+| `dragResistanceUp`   | number | `0.75`  | Resistance when dragging up (0-1, higher = more resistance).   |
+| `dragResistanceDown` | number | `0.01`  | Resistance when dragging down (0-1, higher = more resistance). |
 
 ---
 
@@ -144,23 +191,23 @@ All methods are **asynchronous** and return to the caller as soon as the transit
 const sheet = BootstrapSheet.getInstance('#mySheet');
 ```
 
-| Method                                    | Description                                                                               |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `show()`                                  | Opens the sheet.                                                                          |
-| `hide()`                                  | Closes the sheet.                                                                         |
-| `toggle()`                                | Toggles the sheet visibility.                                                             |
-| `dispose()`                               | Destroys the sheet instance and removes all event listeners.                              |
-| `getInstance(element)` (static)           | Returns the sheet instance associated with a DOM element or `null` if not initialized.    |
-| `getOrCreateInstance(element, config?)` (static) | Gets existing instance or creates a new one if it doesn't exist.                   |
+| Method                                           | Description                                                                            |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `show()`                                         | Opens the sheet.                                                                       |
+| `hide()`                                         | Closes the sheet.                                                                      |
+| `toggle()`                                       | Toggles the sheet visibility.                                                          |
+| `dispose()`                                      | Destroys the sheet instance and removes all event listeners.                           |
+| `getInstance(element)` (static)                  | Returns the sheet instance associated with a DOM element or `null` if not initialized. |
+| `getOrCreateInstance(element, config?)` (static) | Gets existing instance or creates a new one if it doesn't exist.                       |
 
 ---
 
 ## Properties
 
-| Property          | Type    | Description                                          |
-| ----------------- | ------- | ---------------------------------------------------- |
-| `isShown`         | boolean | Returns `true` if the sheet is currently visible.    |
-| `isTransitioning` | boolean | Returns `true` if the sheet is currently animating.  |
+| Property          | Type    | Description                                         |
+| ----------------- | ------- | --------------------------------------------------- |
+| `isShown`         | boolean | Returns `true` if the sheet is currently visible.   |
+| `isTransitioning` | boolean | Returns `true` if the sheet is currently animating. |
 
 ---
 
