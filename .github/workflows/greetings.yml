@@ -14,8 +14,8 @@ jobs:
       - name: Greet first-time contributors
         uses: actions/first-interaction@v3
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: |
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
             👋 Thanks for opening your first issue! We appreciate you taking the time to contribute to Bootstrap Sheet.
 
             A maintainer will review your issue soon. In the meantime, please make sure you've provided all the necessary information, including:
@@ -24,7 +24,7 @@ jobs:
             - Your environment details
 
             If you'd like to work on this issue yourself, feel free to open a pull request!
-          pr-message: |
+          pr_message: |
             🎉 Thanks for opening your first pull request! We're excited to review your contribution to Bootstrap Sheet.
 
             Please make sure:
