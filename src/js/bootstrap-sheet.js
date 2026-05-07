@@ -6,18 +6,25 @@ import {
   FOCUSABLE_SELECTOR,
   Default,
   DefaultType,
+  DEPRECATED_OPTIONS,
+  RUBBER_BAND_COEFFICIENT,
+  DECELERATION_RATE,
 } from './constants';
 
 import {
   resolveElement,
   extractTargetSelector,
-  reflow,
   clamp,
   getScrollbarWidth,
   extractDataAttributes,
   validateConfigTypes,
-  executeAfterTransition,
   getTranslateY,
+  rubberBand,
+  springParameters,
+  solveSpring,
+  isSpringSettled,
+  projectDisplacement,
+  VelocityTracker,
 } from './utils';
 
 const INSTANCES = new WeakMap();
@@ -25,7 +32,7 @@ const SUPPORTS_INERT = 'inert' in HTMLElement.prototype;
 
 /**
  * @class BootstrapSheet - A touch-friendly bottom sheet component for Bootstrap 5
- * @version 0.1.0
+ * @version 0.2.0
  * @author Sergey Mironov <sergeymironov@protonmail.com>
  * @license MIT (https://github.com/mironovsergey/bootstrap-sheet/blob/main/LICENSE)
  */
@@ -40,6 +47,9 @@ class BootstrapSheet {
 
   /* @type {HTMLElement|null} Backdrop element */
   #backdrop = null;
+
+  /* @type {HTMLElement|null} Drag handle element (if any) */
+  #dragHandle = null;
 
   // ==================== Component state ====================
 
@@ -59,12 +69,6 @@ class BootstrapSheet {
 
   /* @type {number|null} Animation frame ID for gesture updates */
   #animationFrame = null;
-
-  /* @type {Function|null} Cancel function for open timeout */
-  #openTimeout = null;
-
-  /* @type {Function|null} Cancel function for close timeout */
-  #closeTimeout = null;
 
   // ==================== Event handlers ====================
 
@@ -99,6 +103,9 @@ class BootstrapSheet {
 
   // ==================== Gesture tracking ====================
 
+  /* @type {VelocityTracker} Windowed velocity tracker for gesture measurement */
+  #velocityTracker = new VelocityTracker(100);
+
   /* @type {Object} Gesture tracking state */
   #gesture = {
     /* @type {number} Initial Y coordinate when drag starts */
@@ -106,18 +113,6 @@ class BootstrapSheet {
 
     /* @type {number} Current Y coordinate during drag */
     currentY: 0,
-
-    /* @type {number} Last recorded Y coordinate */
-    lastY: 0,
-
-    /* @type {number} Timestamp when drag started */
-    startTime: 0,
-
-    /* @type {number} Last timestamp during drag */
-    lastTime: 0,
-
-    /* @type {number} Current velocity in px/ms */
-    velocity: 0,
 
     /* @type {number} Initial translateY value when drag starts */
     startTranslateY: 0,
@@ -154,6 +149,7 @@ class BootstrapSheet {
 
     validateConfigTypes(NAME, this.#config, DefaultType);
 
+    this.#warnDeprecatedOptions(dataConfig, config);
     this.#setupAccessibility();
 
     INSTANCES.set(this.#element, this);
@@ -310,6 +306,26 @@ class BootstrapSheet {
     this.#element.setAttribute('tabindex', '-1');
   }
 
+  /**
+   * Emit console warnings for any deprecated options explicitly provided by the user.
+   * @param {Object} dataConfig - Parsed data attributes from the element
+   * @param {Object} config - Configuration object passed to the constructor
+   * @returns {void}
+   * @private
+   */
+  #warnDeprecatedOptions(dataConfig, config) {
+    for (const [option, message] of Object.entries(DEPRECATED_OPTIONS)) {
+      const isInDataAttrs = Object.prototype.hasOwnProperty.call(dataConfig, option);
+      const isInConfig = config != null && Object.prototype.hasOwnProperty.call(config, option);
+
+      if (isInDataAttrs || isInConfig) {
+        console.warn(
+          `[${NAME}] Option "${option}" is deprecated and will be removed in v0.3.0. ${message}.`,
+        );
+      }
+    }
+  }
+
   // ==================== Private Methods: Show ====================
 
   /**
@@ -332,7 +348,7 @@ class BootstrapSheet {
    */
   #executeShow() {
     if (this.#config.backdrop) {
-      this.#showBackdrop();
+      this.#createBackdrop();
     }
 
     this.#applyInert();
@@ -340,30 +356,23 @@ class BootstrapSheet {
 
     this.#element.classList.add(CLASS_NAME.SHOWING);
 
-    reflow(this.#element);
-
-    this.#element.classList.add(CLASS_NAME.SHOW);
-
     this.#attachEventHandlers();
 
     if (this.#config.focus) {
       this.#startFocusManagement();
     }
 
-    this.#openTimeout = executeAfterTransition(
-      this.#element,
-      () => this.#finalizeShow(),
-      this.#config.animationDuration,
-    );
+    this.#animateSpring(0, 0, () => this.#finalizeShow());
   }
 
   /**
-   * Finalize show transition
+   * Finalize show animation
    * @returns {void}
    * @private
    */
   #finalizeShow() {
     this.#element.classList.remove(CLASS_NAME.SHOWING);
+    this.#element.classList.add(CLASS_NAME.SHOW);
     this.#state.isTransitioning = false;
 
     if (this.#config.focus) {
@@ -393,8 +402,7 @@ class BootstrapSheet {
     }
 
     this.#element.classList.add(CLASS_NAME.HIDING);
-    this.#element.classList.remove(CLASS_NAME.DRAGGING, CLASS_NAME.SHOW);
-    this.#element.style.transform = '';
+    this.#element.classList.remove(CLASS_NAME.SHOW);
   }
 
   /**
@@ -406,22 +414,18 @@ class BootstrapSheet {
     this.#detachEventHandlers();
     this.#cancelAnimations();
     this.#removeInert();
-    this.#updateBackdropOpacity(0);
 
-    this.#closeTimeout = executeAfterTransition(
-      this.#element,
-      () => this.#finalizeHide(),
-      this.#config.animationDuration,
-    );
+    this.#animateSpring(this.#gesture.sheetHeight, 0, () => this.#finalizeHide());
   }
 
   /**
-   * Finalize hide transition
+   * Finalize hide animation
    * @returns {void}
    * @private
    */
   #finalizeHide() {
     this.#element.classList.remove(CLASS_NAME.HIDING);
+    this.#element.style.transform = '';
     this.#state.isTransitioning = false;
 
     this.#removeBackdrop();
@@ -433,19 +437,6 @@ class BootstrapSheet {
   // ==================== Private Methods: Backdrop ====================
 
   /**
-   * Show the backdrop
-   * @returns {void}
-   * @private
-   */
-  #showBackdrop() {
-    if (!this.#backdrop) {
-      this.#createBackdrop();
-    }
-
-    this.#updateBackdropOpacity(1);
-  }
-
-  /**
    * Create the backdrop element
    * @returns {void}
    * @private
@@ -455,17 +446,15 @@ class BootstrapSheet {
 
     backdrop.className = CLASS_NAME.BACKDROP;
     backdrop.style.opacity = '0';
-    backdrop.style.transition = `opacity ${this.#config.animationDuration}ms`;
 
     if (this.#config.backdrop === 'static') {
       backdrop.dataset.bsStatic = '';
+      backdrop.addEventListener('click', () => this.#shakeSheet());
     } else {
       backdrop.addEventListener('click', () => this.hide());
     }
 
     document.body.appendChild(backdrop);
-
-    reflow(backdrop);
 
     this.#backdrop = backdrop;
   }
@@ -836,16 +825,27 @@ class BootstrapSheet {
   }
 
   /**
-   * Animate shake effect for static backdrop
+   * Animate shake effect for static backdrop via Web Animations API.
+   * Uses composite: 'add' so the shake overlays the spring transform without interfering.
    * @returns {void}
    * @private
    */
   #shakeSheet() {
-    this.#element.classList.add(CLASS_NAME.STATIC_SHAKE);
+    if (typeof this.#element.animate !== 'function') {
+      return;
+    }
 
-    setTimeout(() => {
-      this.#element.classList.remove(CLASS_NAME.STATIC_SHAKE);
-    }, this.#config.animationDuration);
+    this.#element.animate(
+      [
+        { transform: 'translateY(0px)' },
+        { transform: 'translateY(-4px)' },
+        { transform: 'translateY(4px)' },
+        { transform: 'translateY(-4px)' },
+        { transform: 'translateY(4px)' },
+        { transform: 'translateY(0px)' },
+      ],
+      { duration: 600, easing: 'ease-in-out', composite: 'add' },
+    );
   }
 
   // ==================== Private Methods: Gestures ====================
@@ -856,9 +856,9 @@ class BootstrapSheet {
    * @private
    */
   #attachGestureHandlers() {
-    const dragHandle = this.#element.querySelector(SELECTOR.DRAG_HANDLE);
+    this.#dragHandle = this.#element.querySelector(SELECTOR.DRAG_HANDLE);
 
-    if (!dragHandle) {
+    if (!this.#dragHandle) {
       return;
     }
 
@@ -866,7 +866,10 @@ class BootstrapSheet {
     this.#handlers.pointerMove = (event) => this.#onPointerMove(event);
     this.#handlers.pointerUp = (event) => this.#onPointerUp(event);
 
-    dragHandle.addEventListener('pointerdown', this.#handlers.pointerDown, { passive: false });
+    this.#dragHandle.addEventListener('pointerdown', this.#handlers.pointerDown, {
+      passive: false,
+    });
+
     document.addEventListener('pointermove', this.#handlers.pointerMove);
     document.addEventListener('pointerup', this.#handlers.pointerUp);
     document.addEventListener('pointercancel', this.#handlers.pointerUp);
@@ -878,10 +881,9 @@ class BootstrapSheet {
    * @private
    */
   #detachGestureHandlers() {
-    const dragHandle = this.#element.querySelector(SELECTOR.DRAG_HANDLE);
-
-    if (dragHandle && this.#handlers.pointerDown) {
-      dragHandle.removeEventListener('pointerdown', this.#handlers.pointerDown);
+    if (this.#dragHandle && this.#handlers.pointerDown) {
+      this.#dragHandle.removeEventListener('pointerdown', this.#handlers.pointerDown);
+      this.#dragHandle = null;
     }
 
     document.removeEventListener('pointermove', this.#handlers.pointerMove);
@@ -902,20 +904,13 @@ class BootstrapSheet {
   #onPointerDown(event) {
     event.preventDefault();
 
-    const now = performance.now();
-
     this.#state.isDragging = true;
     this.#gesture.startY = event.clientY;
     this.#gesture.currentY = event.clientY;
-    this.#gesture.lastY = event.clientY;
-    this.#gesture.startTime = now;
-    this.#gesture.lastTime = now;
-    this.#gesture.velocity = 0;
     this.#gesture.startTranslateY = getTranslateY(this.#element);
 
-    if (this.#backdrop) {
-      this.#backdrop.style.transition = 'none';
-    }
+    this.#velocityTracker.reset();
+    this.#velocityTracker.addSample(event.timeStamp, event.clientY);
 
     this.#element.classList.add(CLASS_NAME.DRAGGING);
 
@@ -939,15 +934,7 @@ class BootstrapSheet {
 
     this.#gesture.currentY = event.clientY;
 
-    const now = performance.now();
-    const deltaTime = now - this.#gesture.lastTime;
-
-    if (deltaTime > 0) {
-      this.#gesture.velocity = (this.#gesture.currentY - this.#gesture.lastY) / deltaTime;
-    }
-
-    this.#gesture.lastY = this.#gesture.currentY;
-    this.#gesture.lastTime = now;
+    this.#velocityTracker.addSample(event.timeStamp, event.clientY);
 
     this.#schedulePositionUpdate();
   }
@@ -980,12 +967,12 @@ class BootstrapSheet {
 
     this.#element.style.transform = `translateY(${adjustedY}px)`;
 
-    const ratio = 1 - (this.#gesture.sheetHeight ? adjustedY / this.#gesture.sheetHeight : 0);
+    const ratio = this.#positionToRatio(adjustedY);
 
     this.#updateBackdropOpacity(clamp(ratio, 0, 1));
 
     this.#triggerEvent(EVENT.SLIDE, {
-      velocity: this.#gesture.velocity,
+      velocity: this.#velocityTracker.getVelocity(performance.now()),
       adjustedY,
       deltaY,
       ratio,
@@ -993,7 +980,13 @@ class BootstrapSheet {
   }
 
   /**
-   * Calculate the adjusted position based on drag resistance
+   * Calculate the adjusted position based on Apple's rubber band formula.
+   *
+   * Three zones:
+   * 1. Past top bound (rawPosition < 0): rubber band resistance
+   * 2. Between bounds (0 <= rawPosition <= sheetHeight): track finger 1:1
+   * 3. Past bottom (rawPosition > sheetHeight): clamped (shouldn't happen normally)
+   *
    * @param {number} deltaY - Raw Y delta from gesture start position
    * @returns {number} Adjusted absolute translateY position
    * @private
@@ -1003,11 +996,21 @@ class BootstrapSheet {
       return this.#gesture.startTranslateY;
     }
 
-    const scale = this.#gesture.sheetHeight * 0.25;
-    const resistance = deltaY < 0 ? this.#config.dragResistanceUp : this.#config.dragResistanceDown;
-    const adjustedDelta = (deltaY * scale) / (scale + resistance * Math.abs(deltaY));
+    const rawPosition = this.#gesture.startTranslateY + deltaY;
 
-    return this.#gesture.startTranslateY + adjustedDelta;
+    // Past top bound: apply rubber band resistance
+    if (rawPosition < 0) {
+      const overscroll = -rawPosition;
+      const resistedOverscroll = rubberBand(
+        overscroll,
+        this.#gesture.sheetHeight,
+        RUBBER_BAND_COEFFICIENT,
+      );
+      return -resistedOverscroll;
+    }
+
+    // Within bounds or dragging down toward dismiss: track finger 1:1
+    return rawPosition;
   }
 
   /**
@@ -1024,99 +1027,135 @@ class BootstrapSheet {
     this.#state.isDragging = false;
     this.#element.classList.remove(CLASS_NAME.DRAGGING);
 
+    const velocity = this.#velocityTracker.getVelocity(event.timeStamp);
+
     try {
       event.target?.releasePointerCapture?.(event.pointerId);
     } catch (error) {
       console.warn('Failed to release pointer:', error);
     }
 
-    if (this.#backdrop) {
-      this.#backdrop.style.transition = `opacity ${this.#config.animationDuration}ms`;
-    }
-
-    this.#handleDragEnd();
+    this.#handleDragEnd(velocity);
   }
 
   /**
-   * Handle drag end and determine final position
+   * Handle drag end and determine whether to snap back or dismiss.
+   *
+   * Uses Apple's velocity projection model: projects where the sheet would
+   * come to rest after decelerating, then decides based on that projected
+   * position. If the projection passes the midpoint of the sheet height,
+   * the sheet is dismissed. Otherwise it snaps back to the open position.
+   *
    * @returns {void}
    * @private
    */
-  #handleDragEnd() {
+  #handleDragEnd(velocity) {
     const deltaY = this.#gesture.currentY - this.#gesture.startY;
-    const velocity = this.#gesture.velocity || 0;
+    const velocityPxPerSec = (velocity || 0) * 1000;
 
-    // Project movement based on velocity
-    const projectedDelta = deltaY + velocity * this.#config.projectionTime;
+    // Dragging up: always snap back to open position
+    if (deltaY <= 0) {
+      this.#animateSpring(0, velocityPxPerSec);
+      return;
+    }
 
-    if (deltaY < 0) {
-      // Pulling up - return to initial position
-      this.#animateToPosition(0);
+    // Dragging down: project where the sheet would come to rest
+    const currentY = this.#calculateResistantPosition(deltaY);
+    const displacement = projectDisplacement(velocityPxPerSec, DECELERATION_RATE);
+    const projectedY = currentY + displacement;
+
+    // Dismiss if projection passes midpoint of sheet height
+    if (projectedY > this.#gesture.sheetHeight * 0.5) {
+      this.#animateSpring(this.#gesture.sheetHeight, velocityPxPerSec, () => this.hide());
     } else {
-      // Determine if sheet should close
-      const threshold = Math.max(
-        this.#config.swipeThreshold,
-        this.#gesture.sheetHeight * this.#config.closeThresholdRatio,
-      );
-
-      const shouldClose =
-        projectedDelta > threshold ||
-        (Math.abs(velocity) > this.#config.velocityThreshold &&
-          deltaY > this.#config.minCloseDistance);
-
-      if (shouldClose) {
-        this.#animateToPosition(this.#gesture.sheetHeight, () => this.hide());
-      } else {
-        this.#animateToPosition(0);
-      }
+      this.#animateSpring(0, velocityPxPerSec);
     }
   }
 
+  // ==================== Private Methods: Spring Animation ====================
+
   /**
-   * Animate sheet to target position. Uses easeOutCubic timing function.
+   * Resolve spring parameters from config.
+   * @returns {{ stiffness: number, damping: number, mass: number }} Spring constants
+   * @private
+   */
+  #resolveSpringParams() {
+    return springParameters(this.#config.springDampingRatio, this.#config.springResponse);
+  }
+
+  /**
+   * Animate sheet to target position using spring physics.
+   *
+   * Unlike easing-based animation, the spring has no fixed duration - it runs
+   * until position and velocity settle below threshold. The initialVelocity
+   * parameter enables seamless handoff from gesture: the spring starts moving
+   * at the same speed the finger was moving at release.
+   *
    * @param {number} targetY - Target translateY position
-   * @param {Function} onComplete - Optional callback when animation completes
+   * @param {number} [initialVelocity=0] - Velocity at animation start (px/s)
+   * @param {Function} [onComplete] - Callback when animation settles
    * @returns {void}
    * @private
    */
-  #animateToPosition(targetY, onComplete) {
-    const startY = getTranslateY(this.#element);
-    const distance = targetY - startY;
-    const duration = this.#config.animationDuration;
-    const startTime = performance.now();
+  #animateSpring(targetY, initialVelocity = 0, onComplete) {
+    const params = this.#resolveSpringParams();
+
+    let state = {
+      position: getTranslateY(this.#element),
+      velocity: initialVelocity,
+    };
+
+    let lastTime = null;
 
     const animate = (currentTime) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
+      if (lastTime === null) {
+        lastTime = currentTime;
+      }
 
-      // Easing function: easeOutCubic for smooth deceleration
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const currentY = startY + distance * eased;
+      // Cap dt so a long pause (tab switch) resumes smoothly rather than teleporting.
+      const dt = Math.min((currentTime - lastTime) / 1000, 1 / 30);
+      lastTime = currentTime;
 
-      this.#element.style.transform = `translateY(${currentY}px)`;
+      state = solveSpring(state, targetY, params, dt);
 
-      const ratio = 1 - (this.#gesture.sheetHeight ? currentY / this.#gesture.sheetHeight : 0);
+      this.#element.style.transform = `translateY(${state.position}px)`;
 
-      this.#updateBackdropOpacity(ratio);
+      const ratio = this.#positionToRatio(state.position);
 
-      if (progress < 1) {
-        this.#animationFrame = requestAnimationFrame(animate);
-      } else {
+      this.#updateBackdropOpacity(clamp(ratio, 0, 1));
+
+      if (isSpringSettled(state, targetY)) {
+        // Snap to exact target and clean up
+        this.#element.style.transform = `translateY(${targetY}px)`;
+        this.#element.classList.remove(CLASS_NAME.ANIMATING);
         this.#animationFrame = null;
-        if (typeof onComplete === 'function') {
-          onComplete();
-        }
+
+        onComplete?.();
+      } else {
+        this.#animationFrame = requestAnimationFrame(animate);
       }
     };
 
-    if (this.#animationFrame) {
-      cancelAnimationFrame(this.#animationFrame);
-    }
+    this.#cancelAnimations();
+
+    this.#element.classList.add(CLASS_NAME.ANIMATING);
 
     this.#animationFrame = requestAnimationFrame(animate);
   }
 
   // ==================== Private Methods: Utilities ====================
+
+  /**
+   * Convert absolute translateY position to a backdrop opacity ratio.
+   * Returns 1 (fully opaque) when sheet is fully open (position = 0),
+   * and 0 (transparent) when fully closed (position = sheetHeight).
+   * @param {number} position - Current translateY in pixels
+   * @returns {number} Ratio in range [0, 1]
+   * @private
+   */
+  #positionToRatio(position) {
+    return 1 - (this.#gesture.sheetHeight ? position / this.#gesture.sheetHeight : 0);
+  }
 
   /**
    * Cancel all pending animations
@@ -1128,6 +1167,8 @@ class BootstrapSheet {
       cancelAnimationFrame(this.#animationFrame);
       this.#animationFrame = null;
     }
+
+    this.#element?.classList.remove(CLASS_NAME.ANIMATING);
   }
 
   /**
@@ -1141,10 +1182,7 @@ class BootstrapSheet {
     }
 
     this.#state.isDragging = false;
-
-    if (this.#backdrop) {
-      this.#backdrop.style.transition = `opacity ${this.#config.animationDuration}ms`;
-    }
+    this.#element.classList.remove(CLASS_NAME.DRAGGING);
 
     this.#cancelAnimations();
   }
@@ -1159,17 +1197,6 @@ class BootstrapSheet {
     this.#state.isShown = false;
     this.#state.isTransitioning = false;
     this.#state.isDragging = false;
-
-    // Cancel timeouts
-    if (typeof this.#openTimeout === 'function') {
-      this.#openTimeout();
-      this.#openTimeout = null;
-    }
-
-    if (typeof this.#closeTimeout === 'function') {
-      this.#closeTimeout();
-      this.#closeTimeout = null;
-    }
 
     this.#resetBodyPadding();
     this.#removeBackdrop();
@@ -1227,7 +1254,7 @@ document.addEventListener('click', (event) => {
 
   const sheetConfig = extractDataAttributes(sheetElement);
   const triggerConfig = extractDataAttributes(trigger);
-  const mergedConfig = { ...Default, ...sheetConfig, ...triggerConfig };
+  const mergedConfig = { ...sheetConfig, ...triggerConfig };
   const sheetInstance = BootstrapSheet.getOrCreateInstance(sheetElement, mergedConfig);
 
   sheetInstance.toggle();

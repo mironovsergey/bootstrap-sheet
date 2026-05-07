@@ -1,8 +1,11 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { CLASS_NAME, SELECTOR } from '../../src/js/constants';
-import { createSheet, createFocusableElements, advanceTimersAndFlush } from '../setup/test-utils';
-
-const TRANSITION_WAIT = BootstrapSheet.Default.animationDuration + 50;
+import {
+  createSheet,
+  createFocusableElements,
+  advanceTimersAndFlush,
+  TRANSITION_WAIT,
+} from '../setup/test-utils';
 
 describe('BootstrapSheet - Focus Management', () => {
   describe('Initial focus state', () => {
@@ -413,8 +416,8 @@ describe('BootstrapSheet - Focus Management', () => {
       instance.hide();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      // Focus is NOT restored because focus management was disabled
-      // It stays where it was - on input
+      // focus: false still saves and restores the previous element (button),
+      // so after hide, focus is back on button - not on the manually focused input
       expect(document.activeElement).not.toBe(input);
     });
   });

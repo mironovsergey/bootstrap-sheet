@@ -1,8 +1,6 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { CLASS_NAME } from '../../src/js/constants';
-import { createSheet, advanceTimersAndFlush } from '../setup/test-utils';
-
-const TRANSITION_WAIT = BootstrapSheet.Default.animationDuration + 50;
+import { createSheet, advanceTimersAndFlush, TRANSITION_WAIT } from '../setup/test-utils';
 
 describe('BootstrapSheet - Backdrop', () => {
   describe('Backdrop creation', () => {
@@ -67,80 +65,45 @@ describe('BootstrapSheet - Backdrop', () => {
       // Backdrop is added after sheet (sheet exists before show() is called)
       expect(backdropIndex).toBeGreaterThan(sheetIndex);
     });
-
-    test('should have correct CSS class', async () => {
-      const sheet = createSheet();
-      const instance = new BootstrapSheet(sheet, { backdrop: true });
-
-      instance.show();
-      await advanceTimersAndFlush(TRANSITION_WAIT);
-
-      const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
-      expect(backdrop).toHaveClass(CLASS_NAME.BACKDROP);
-    });
   });
 
   describe('Backdrop opacity and transitions', () => {
-    test('should be set to opacity 1 immediately after show', () => {
+    test('should start at opacity 0 and animate to 1 via spring', async () => {
       const sheet = createSheet();
       const instance = new BootstrapSheet(sheet, { backdrop: true });
 
       instance.show();
 
       const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
-      // Backdrop opacity is set to 1 immediately in #showBackdrop()
+      expect(backdrop.style.opacity).toBe('0');
+
+      await advanceTimersAndFlush(TRANSITION_WAIT);
       expect(backdrop.style.opacity).toBe('1');
     });
 
-    test('should animate to opacity 1 after show', async () => {
+    test('should have no inline transition (opacity driven by JS)', () => {
+      const sheet = createSheet();
+      const instance = new BootstrapSheet(sheet, { backdrop: true });
+
+      instance.show();
+
+      const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
+      expect(backdrop.style.transition).toBe('');
+    });
+
+    test('should animate to opacity 0 then remove on hide', async () => {
       const sheet = createSheet();
       const instance = new BootstrapSheet(sheet, { backdrop: true });
 
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
-      expect(backdrop.style.opacity).toBe('1');
-    });
-
-    test('should have transition property set', () => {
-      const sheet = createSheet();
-      const instance = new BootstrapSheet(sheet, { backdrop: true });
-
-      instance.show();
-
-      const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
-      expect(backdrop.style.transition).toContain('opacity');
-      expect(backdrop.style.transition).toContain('300ms');
-    });
-
-    test('should respect custom animation duration', () => {
-      const sheet = createSheet();
-      const customDuration = 500;
-      const instance = new BootstrapSheet(sheet, {
-        backdrop: true,
-        animationDuration: customDuration,
-      });
-
-      instance.show();
-
-      const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
-      expect(backdrop.style.transition).toContain(`${customDuration}ms`);
-    });
-
-    test('should animate to opacity 0 on hide', async () => {
-      const sheet = createSheet();
-      const instance = new BootstrapSheet(sheet, { backdrop: true });
-
-      instance.show();
-      await advanceTimersAndFlush(TRANSITION_WAIT);
-
-      const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
-      expect(backdrop.style.opacity).toBe('1');
+      expect(document.querySelector(`.${CLASS_NAME.BACKDROP}`)).toBeInTheDocument();
 
       instance.hide();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      expect(backdrop.style.opacity).toBe('0');
+      expect(document.querySelector(`.${CLASS_NAME.BACKDROP}`)).not.toBeInTheDocument();
     });
   });
 
@@ -187,14 +150,16 @@ describe('BootstrapSheet - Backdrop', () => {
       const sheet = createSheet();
       const instance = new BootstrapSheet(sheet, { backdrop: 'static' });
 
+      const animateSpy = jest.fn();
+      sheet.animate = animateSpy;
+
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
       const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
       backdrop.click();
 
-      // Note: static backdrop doesn't have click handler, so no shake
-      // Shake is only triggered by ESC key with static backdrop
+      expect(animateSpy).toHaveBeenCalled();
       expect(instance.isShown).toBe(true);
     });
   });
@@ -291,7 +256,7 @@ describe('BootstrapSheet - Backdrop', () => {
   });
 
   describe('Multiple shows and hides', () => {
-    test('should reuse same backdrop element on subsequent shows', async () => {
+    test('should create a new backdrop element on subsequent shows', async () => {
       const sheet = createSheet();
       const instance = new BootstrapSheet(sheet, { backdrop: true });
 
@@ -447,7 +412,7 @@ describe('BootstrapSheet - Backdrop', () => {
       expect(opacity).toBeGreaterThanOrEqual(0);
     });
 
-    test('should remove backdrop transition during drag', async () => {
+    test('should have no inline transition before and during drag', async () => {
       const sheet = createSheet({ withDragHandle: true });
       const instance = new BootstrapSheet(sheet, {
         backdrop: true,
@@ -458,49 +423,14 @@ describe('BootstrapSheet - Backdrop', () => {
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
       const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
-      expect(backdrop.style.transition).toContain('opacity');
+      expect(backdrop.style.transition).toBe('');
 
       const handle = sheet.querySelector('[data-bs-drag="sheet"]');
+      handle.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, clientY: 0, pointerId: 1 }),
+      );
 
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
-
-      expect(backdrop.style.transition).toBe('none');
-    });
-
-    test('should restore backdrop transition after drag', async () => {
-      const sheet = createSheet({ withDragHandle: true });
-      const instance = new BootstrapSheet(sheet, {
-        backdrop: true,
-        gestures: true,
-      });
-
-      instance.show();
-      await advanceTimersAndFlush(TRANSITION_WAIT);
-
-      const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
-      const handle = sheet.querySelector('[data-bs-drag="sheet"]');
-
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
-
-      const pointerUp = new PointerEvent('pointerup', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerUp);
-
-      expect(backdrop.style.transition).toContain('opacity');
-      expect(backdrop.style.transition).toContain('300ms');
+      expect(backdrop.style.transition).toBe('');
     });
 
     test('should not affect backdrop when gestures disabled', async () => {
@@ -616,41 +546,9 @@ describe('BootstrapSheet - Backdrop', () => {
         value: originalBody,
       });
     });
-
-    test('should handle backdrop with no animation duration', async () => {
-      const sheet = createSheet();
-      const instance = new BootstrapSheet(sheet, {
-        backdrop: true,
-        animationDuration: 0,
-      });
-
-      instance.show();
-      await advanceTimersAndFlush(50);
-
-      const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
-      expect(backdrop).toBeInTheDocument();
-      expect(backdrop.style.transition).toContain('0ms');
-    });
   });
 
   describe('Backdrop z-index and stacking', () => {
-    test('backdrop should appear after sheet in DOM', async () => {
-      const sheet = createSheet();
-      const instance = new BootstrapSheet(sheet, { backdrop: true });
-
-      instance.show();
-      await advanceTimersAndFlush(TRANSITION_WAIT);
-
-      const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
-      const allBodyChildren = Array.from(document.body.children);
-
-      const backdropIndex = allBodyChildren.indexOf(backdrop);
-      const sheetIndex = allBodyChildren.indexOf(sheet);
-
-      // Backdrop is added after sheet (but should have higher z-index via CSS)
-      expect(backdropIndex).toBeGreaterThan(sheetIndex);
-    });
-
     test('multiple backdrops should maintain correct order with sheets', async () => {
       const sheet1 = createSheet({ id: 'sheet1' });
       const sheet2 = createSheet({ id: 'sheet2' });

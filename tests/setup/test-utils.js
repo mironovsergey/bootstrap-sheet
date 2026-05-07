@@ -1,4 +1,10 @@
 /**
+ * Timer budget for show/hide animations in tests.
+ * The spring with default params settles well within this window.
+ */
+export const TRANSITION_WAIT = 350;
+
+/**
  * Create a basic sheet element
  * @param {Object} options - Configuration options
  * @returns {HTMLElement} Sheet element

@@ -11,10 +11,6 @@ $sheet-bg: var(--bs-body-bg, #fff) !default;
 $sheet-backdrop-bg: rgba(0, 0, 0, 0.5) !default;
 $sheet-backdrop-backdrop-filter: blur(2px) !default;
 
-// Transitions
-$sheet-transition-duration: 0.3s !default;
-$sheet-transition-timing: ease-out !default;
-
 // Handle
 $sheet-handle-bg: var(--bs-gray-400, #dee2e6) !default;
 $sheet-handle-hover-bg: var(--bs-gray-500, #adb5bd) !default;
@@ -39,9 +35,6 @@ $sheet-border-radius: 1rem 1rem 0 0 !default;
 // Focus
 $sheet-focus-ring-width: 0.25rem !default;
 $sheet-focus-ring-color: rgba(13, 110, 253, 0.25) !default;
-
-// Animations
-$sheet-shake-distance: 10px !default;
 
 // States
 $sheet-disabled-opacity: 0.65 !default;

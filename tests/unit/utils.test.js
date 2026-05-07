@@ -2,15 +2,19 @@ import {
   parseAttributeValue,
   extractDataAttributes,
   resolveElement,
-  reflow,
   clamp,
   extractTargetSelector,
   getScrollbarWidth,
   getValueType,
   parseExpectedTypes,
   validateConfigTypes,
-  executeAfterTransition,
   getTranslateY,
+  rubberBand,
+  springParameters,
+  isSpringSettled,
+  projectDisplacement,
+  solveSpring,
+  VelocityTracker,
 } from '../../src/js/utils';
 
 describe('Utils - parseAttributeValue', () => {
@@ -70,29 +74,25 @@ describe('Utils - extractDataAttributes', () => {
     const element = document.createElement('div');
     element.setAttribute('data-bs-backdrop', 'true');
     element.setAttribute('data-bs-keyboard', 'false');
-    element.setAttribute('data-bs-animation-duration', '300');
 
     const result = extractDataAttributes(element);
 
     expect(result).toEqual({
       backdrop: true,
       keyboard: false,
-      animationDuration: 300,
     });
   });
 
   test('should convert data attribute keys to camelCase', () => {
     const element = document.createElement('div');
-    element.setAttribute('data-bs-swipe-threshold', '50');
-    element.setAttribute('data-bs-velocity-threshold', '0.5');
-    element.setAttribute('data-bs-drag-resistance-up', '0.75');
+    element.setAttribute('data-bs-spring-damping-ratio', '0.8');
+    element.setAttribute('data-bs-spring-response', '0.3');
 
     const result = extractDataAttributes(element);
 
     expect(result).toEqual({
-      swipeThreshold: 50,
-      velocityThreshold: 0.5,
-      dragResistanceUp: 0.75,
+      springDampingRatio: 0.8,
+      springResponse: 0.3,
     });
   });
 
@@ -242,40 +242,6 @@ describe('Utils - resolveElement', () => {
   });
 });
 
-describe('Utils - reflow', () => {
-  test('should return offsetHeight for element', () => {
-    const element = document.createElement('div');
-    Object.defineProperty(element, 'offsetHeight', {
-      configurable: true,
-      value: 100,
-    });
-
-    expect(reflow(element)).toBe(100);
-  });
-
-  test('should return 0 for non-Element', () => {
-    expect(reflow(null)).toBe(0);
-    expect(reflow(undefined)).toBe(0);
-    expect(reflow({})).toBe(0);
-  });
-
-  test('should trigger reflow/repaint', () => {
-    const element = document.createElement('div');
-    document.body.appendChild(element);
-
-    Object.defineProperty(element, 'offsetHeight', {
-      configurable: true,
-      value: 150,
-    });
-
-    const result = reflow(element);
-
-    expect(result).toBe(150);
-
-    element.remove();
-  });
-});
-
 describe('Utils - clamp', () => {
   test('should clamp value between min and max', () => {
     expect(clamp(5, 1, 10)).toBe(5);
@@ -360,6 +326,20 @@ describe('Utils - extractTargetSelector', () => {
     element.setAttribute('href', ':::invalid:::');
 
     expect(extractTargetSelector(element)).toBeNull();
+  });
+
+  test('should return null when URL constructor throws', () => {
+    const element = document.createElement('a');
+    element.setAttribute('href', 'non-hash-url');
+
+    const OrigURL = global.URL;
+    global.URL = function () {
+      throw new TypeError('Invalid URL');
+    };
+
+    expect(extractTargetSelector(element)).toBeNull();
+
+    global.URL = OrigURL;
   });
 
   test('should return null for non-Element', () => {
@@ -498,13 +478,11 @@ describe('Utils - validateConfigTypes', () => {
     const config = {
       backdrop: true,
       keyboard: false,
-      animationDuration: 300,
     };
 
     const configTypes = {
       backdrop: 'boolean',
       keyboard: 'boolean',
-      animationDuration: 'number',
     };
 
     expect(() => {
@@ -605,179 +583,6 @@ describe('Utils - validateConfigTypes', () => {
       validateConfigTypes('Test', config, configTypes);
     }).not.toThrow();
   });
-
-  test('should provide detailed error messages', () => {
-    const config = {
-      animationDuration: '300',
-    };
-
-    const configTypes = {
-      animationDuration: 'number',
-    };
-
-    expect(() => {
-      validateConfigTypes('Sheet', config, configTypes);
-    }).toThrow(
-      '[Sheet] Option "animationDuration" has invalid type: expected number, but received string',
-    );
-  });
-});
-
-describe('Utils - executeAfterTransition', () => {
-  test('should execute callback after transitionend event', () => {
-    const element = document.createElement('div');
-    document.body.appendChild(element);
-
-    const callback = jest.fn();
-
-    executeAfterTransition(element, callback, 300);
-
-    expect(callback).not.toHaveBeenCalled();
-
-    const event = new Event('transitionend', { bubbles: true });
-    Object.defineProperty(event, 'target', { value: element, enumerable: true });
-    element.dispatchEvent(event);
-
-    expect(callback).toHaveBeenCalledTimes(1);
-
-    element.remove();
-  });
-
-  test('should execute callback after timeout if no transitionend', () => {
-    const element = document.createElement('div');
-    document.body.appendChild(element);
-
-    const callback = jest.fn();
-
-    executeAfterTransition(element, callback, 300);
-
-    expect(callback).not.toHaveBeenCalled();
-
-    jest.advanceTimersByTime(350);
-
-    expect(callback).toHaveBeenCalledTimes(1);
-
-    element.remove();
-  });
-
-  test('should execute callback only once', () => {
-    const element = document.createElement('div');
-    document.body.appendChild(element);
-
-    const callback = jest.fn();
-
-    executeAfterTransition(element, callback, 300);
-
-    const event = new Event('transitionend', { bubbles: true });
-    Object.defineProperty(event, 'target', { value: element, enumerable: true });
-    element.dispatchEvent(event);
-    element.dispatchEvent(event);
-
-    jest.advanceTimersByTime(350);
-
-    expect(callback).toHaveBeenCalledTimes(1);
-
-    element.remove();
-  });
-
-  test('should ignore transitionend from child elements', () => {
-    const element = document.createElement('div');
-    const child = document.createElement('span');
-    element.appendChild(child);
-    document.body.appendChild(element);
-
-    const callback = jest.fn();
-
-    executeAfterTransition(element, callback, 300);
-
-    const event = new Event('transitionend', { bubbles: true });
-    Object.defineProperty(event, 'target', { value: child, enumerable: true });
-    element.dispatchEvent(event);
-
-    expect(callback).not.toHaveBeenCalled();
-
-    jest.advanceTimersByTime(350);
-
-    expect(callback).toHaveBeenCalledTimes(1);
-
-    element.remove();
-  });
-
-  test('should return cleanup function', () => {
-    const element = document.createElement('div');
-    document.body.appendChild(element);
-
-    const callback = jest.fn();
-
-    const cleanup = executeAfterTransition(element, callback, 300);
-
-    expect(typeof cleanup).toBe('function');
-
-    cleanup();
-
-    const event = new Event('transitionend', { bubbles: true });
-    Object.defineProperty(event, 'target', { value: element, enumerable: true });
-    element.dispatchEvent(event);
-
-    jest.advanceTimersByTime(350);
-
-    expect(callback).not.toHaveBeenCalled();
-
-    element.remove();
-  });
-
-  test('should handle callback errors gracefully', () => {
-    const element = document.createElement('div');
-    document.body.appendChild(element);
-
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
-    const callback = jest.fn(() => {
-      throw new Error('Callback error');
-    });
-
-    executeAfterTransition(element, callback, 300);
-
-    const event = new Event('transitionend', { bubbles: true });
-    Object.defineProperty(event, 'target', { value: element, enumerable: true });
-
-    expect(() => {
-      element.dispatchEvent(event);
-    }).not.toThrow();
-
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error in transition callback:',
-      expect.any(Error),
-    );
-
-    consoleErrorSpy.mockRestore();
-    element.remove();
-  });
-
-  test('should execute callback immediately for non-Element', () => {
-    const callback = jest.fn();
-
-    const cleanup = executeAfterTransition(null, callback, 300);
-
-    expect(callback).toHaveBeenCalledTimes(1);
-    expect(typeof cleanup).toBe('function');
-  });
-
-  test('should clean up event listener and timeout', () => {
-    const element = document.createElement('div');
-    document.body.appendChild(element);
-
-    const callback = jest.fn();
-    const removeEventListenerSpy = jest.spyOn(element, 'removeEventListener');
-
-    const cleanup = executeAfterTransition(element, callback, 300);
-
-    cleanup();
-
-    expect(removeEventListenerSpy).toHaveBeenCalledWith('transitionend', expect.any(Function));
-
-    element.remove();
-  });
 });
 
 describe('Utils - getTranslateY', () => {
@@ -842,5 +647,522 @@ describe('Utils - getTranslateY', () => {
     element.style.transform = 'invalid';
 
     expect(getTranslateY(element)).toBe(0);
+  });
+
+  test('should return 0 when DOMMatrix throws', () => {
+    const element = document.createElement('div');
+    element.style.transform = 'translateY(50px)';
+
+    const OrigDOMMatrix = window.DOMMatrix;
+    window.DOMMatrix = function () {
+      throw new Error('DOMMatrix not supported');
+    };
+
+    expect(getTranslateY(element)).toBe(0);
+
+    window.DOMMatrix = OrigDOMMatrix;
+  });
+});
+
+describe('Utils - rubberBand', () => {
+  test('should return 0 for zero offset', () => {
+    expect(rubberBand(0, 400, 0.55)).toBe(0);
+  });
+
+  test('should return 0 for zero dimension', () => {
+    expect(rubberBand(100, 0, 0.55)).toBe(0);
+  });
+
+  test('should return a value less than the raw offset (resistance effect)', () => {
+    const result = rubberBand(100, 400, 0.55);
+
+    expect(result).toBeGreaterThan(0);
+    expect(result).toBeLessThan(100);
+  });
+
+  test('should return a value less than the dimension (asymptotic bound)', () => {
+    expect(rubberBand(100, 400, 0.55)).toBeLessThan(400);
+    expect(rubberBand(10000, 400, 0.55)).toBeLessThan(400);
+  });
+
+  test('should return correct value for known input', () => {
+    // (1 - 1 / ((100 * 0.55) / 400 + 1)) * 400 ≈ 48.35
+    expect(rubberBand(100, 400, 0.55)).toBeCloseTo(48.35, 1);
+  });
+
+  test('should increase monotonically with offset', () => {
+    const r1 = rubberBand(50, 400, 0.55);
+    const r2 = rubberBand(100, 400, 0.55);
+    const r3 = rubberBand(200, 400, 0.55);
+
+    expect(r1).toBeLessThan(r2);
+    expect(r2).toBeLessThan(r3);
+  });
+
+  test('should scale proportionally with dimension', () => {
+    const r1 = rubberBand(100, 400, 0.55);
+    const r2 = rubberBand(200, 800, 0.55);
+
+    expect(r2).toBeCloseTo(r1 * 2, 5);
+  });
+
+  test('should increase resistance with higher coefficient', () => {
+    const lowResistance = rubberBand(100, 400, 0.3);
+    const highResistance = rubberBand(100, 400, 0.8);
+
+    expect(highResistance).toBeGreaterThan(lowResistance);
+  });
+});
+
+describe('Utils - springParameters', () => {
+  test('should return stiffness, damping, and mass', () => {
+    const params = springParameters(1.0, 0.4);
+
+    expect(params).toHaveProperty('stiffness');
+    expect(params).toHaveProperty('damping');
+    expect(params).toHaveProperty('mass');
+  });
+
+  test('should always return mass of 1', () => {
+    expect(springParameters(1.0, 0.4).mass).toBe(1);
+    expect(springParameters(0.5, 0.2).mass).toBe(1);
+  });
+
+  test('should return correct stiffness for response=0.4', () => {
+    // stiffness = (2π / 0.4)² ≈ 246.74
+    expect(springParameters(1.0, 0.4).stiffness).toBeCloseTo(246.74, 1);
+  });
+
+  test('should return correct damping for dampingRatio=1.0, response=0.4', () => {
+    // damping = 4π * 1.0 / 0.4 ≈ 31.42
+    expect(springParameters(1.0, 0.4).damping).toBeCloseTo(31.42, 1);
+  });
+
+  test('should return correct damping for dampingRatio=0.8, response=0.4', () => {
+    // damping = 4π * 0.8 / 0.4 ≈ 25.13
+    expect(springParameters(0.8, 0.4).damping).toBeCloseTo(25.13, 1);
+  });
+
+  test('stiffness should not depend on dampingRatio', () => {
+    const p1 = springParameters(1.0, 0.4);
+    const p2 = springParameters(0.5, 0.4);
+
+    expect(p1.stiffness).toBeCloseTo(p2.stiffness, 10);
+  });
+
+  test('larger response should produce lower stiffness (slower spring)', () => {
+    const fast = springParameters(1.0, 0.2);
+    const slow = springParameters(1.0, 0.8);
+
+    expect(fast.stiffness).toBeGreaterThan(slow.stiffness);
+  });
+
+  test('higher dampingRatio should produce higher damping', () => {
+    const low = springParameters(0.5, 0.4);
+    const high = springParameters(1.0, 0.4);
+
+    expect(high.damping).toBeGreaterThan(low.damping);
+  });
+
+  test('minimum springResponse = 0.1 should produce very high stiffness', () => {
+    const params = springParameters(0.8, 0.1);
+    // stiffness = (2π / 0.1)² ≈ 3947.8
+    expect(params.stiffness).toBeCloseTo(3947.8, 0);
+    // damping = 4π * 0.8 / 0.1 ≈ 100.5
+    expect(params.damping).toBeCloseTo(100.5, 0);
+    expect(params.mass).toBe(1);
+  });
+
+  test('maximum springResponse = 1.0 should produce low stiffness (slow spring)', () => {
+    const params = springParameters(1.0, 1.0);
+    // stiffness = (2π / 1)² ≈ 39.48
+    expect(params.stiffness).toBeCloseTo(39.48, 1);
+    // damping = 4π * 1.0 / 1.0 ≈ 12.57
+    expect(params.damping).toBeCloseTo(12.57, 1);
+  });
+
+  test('dampingRatio > 1 should produce overdamped system (damping > critical)', () => {
+    const params = springParameters(2.0, 0.4);
+    const criticalDamping = 2 * Math.sqrt(params.stiffness * params.mass);
+    expect(params.damping).toBeGreaterThan(criticalDamping);
+  });
+
+  test('dampingRatio < 1 should produce underdamped system (damping < critical)', () => {
+    const params = springParameters(0.2, 0.4);
+    const criticalDamping = 2 * Math.sqrt(params.stiffness * params.mass);
+    expect(params.damping).toBeLessThan(criticalDamping);
+  });
+});
+
+describe('Utils - solveSpring', () => {
+  const underdampedParams = springParameters(0.8, 0.4); // default
+  const criticalParams = springParameters(1.0, 0.4); // critically damped
+  const overdampedParams = springParameters(1.5, 0.4); // overdamped
+
+  test('should not change state at equilibrium', () => {
+    const state = { position: 0, velocity: 0 };
+    const result = solveSpring(state, 0, underdampedParams, 0.016);
+    expect(result.position).toBeCloseTo(0, 10);
+    expect(result.velocity).toBeCloseTo(0, 10);
+  });
+
+  test('should not mutate input state', () => {
+    const state = { position: 100, velocity: 0 };
+    solveSpring(state, 0, underdampedParams, 0.016);
+    expect(state.position).toBe(100);
+    expect(state.velocity).toBe(0);
+  });
+
+  test('should return correct state at dt = 0', () => {
+    const state = { position: 100, velocity: -50 };
+    const result = solveSpring(state, 0, underdampedParams, 0);
+    expect(result.position).toBeCloseTo(100, 6);
+    expect(result.velocity).toBeCloseTo(-50, 6);
+  });
+
+  test('should move position toward target (underdamped)', () => {
+    const state = { position: 100, velocity: 0 };
+    const result = solveSpring(state, 0, underdampedParams, 0.016);
+    expect(result.position).toBeLessThan(state.position);
+  });
+
+  test('should move position toward target (critically damped)', () => {
+    const state = { position: 100, velocity: 0 };
+    const result = solveSpring(state, 0, criticalParams, 0.016);
+    expect(result.position).toBeLessThan(state.position);
+    expect(result.position).toBeGreaterThan(0);
+  });
+
+  test('should move position toward target (overdamped)', () => {
+    const state = { position: 100, velocity: 0 };
+    const result = solveSpring(state, 0, overdampedParams, 0.016);
+    expect(result.position).toBeLessThan(state.position);
+    expect(result.position).toBeGreaterThan(0);
+  });
+
+  test('should converge underdamped spring over many steps', () => {
+    let state = { position: 100, velocity: 0 };
+    for (let i = 0; i < 200; i++) {
+      state = solveSpring(state, 0, underdampedParams, 0.016);
+    }
+    expect(isSpringSettled(state, 0)).toBe(true);
+  });
+
+  test('should converge critically damped spring over many steps', () => {
+    let state = { position: 100, velocity: 0 };
+    for (let i = 0; i < 200; i++) {
+      state = solveSpring(state, 0, criticalParams, 0.016);
+    }
+    expect(isSpringSettled(state, 0)).toBe(true);
+  });
+
+  test('should converge overdamped spring over many steps', () => {
+    let state = { position: 100, velocity: 0 };
+    for (let i = 0; i < 200; i++) {
+      state = solveSpring(state, 0, overdampedParams, 0.016);
+    }
+    expect(isSpringSettled(state, 0)).toBe(true);
+  });
+
+  test('should converge with aggressive springResponse = 0.1 in a single 60fps step', () => {
+    // Key regression: numerical Euler integration diverges here (ω₀·dt ≈ 1.05),
+    // but solveSpring is exact and stable regardless of stiffness.
+    const aggressiveParams = springParameters(0.8, 0.1);
+    let state = { position: 500, velocity: 0 };
+    for (let i = 0; i < 60; i++) {
+      state = solveSpring(state, 0, aggressiveParams, 1 / 60);
+    }
+    expect(isSpringSettled(state, 0)).toBe(true);
+  });
+
+  test('should work with a non-zero target', () => {
+    let state = { position: 0, velocity: 0 };
+    for (let i = 0; i < 200; i++) {
+      state = solveSpring(state, 300, underdampedParams, 0.016);
+    }
+    expect(isSpringSettled(state, 300)).toBe(true);
+  });
+
+  test('should incorporate initial velocity toward target into trajectory', () => {
+    const atRest = solveSpring({ position: 100, velocity: 0 }, 0, underdampedParams, 0.016);
+    const withVel = solveSpring({ position: 100, velocity: -500 }, 0, underdampedParams, 0.016);
+    expect(withVel.position).toBeLessThan(atRest.position);
+  });
+
+  test('should handle initial velocity away from target', () => {
+    // Velocity pushes position further from target first, then spring pulls back.
+    // This mirrors gesture release with downward velocity (spring snaps back upward).
+    const result = solveSpring({ position: 100, velocity: 500 }, 0, underdampedParams, 0.016);
+    // One frame away: position moves further from target before spring wins
+    expect(result.position).toBeGreaterThan(100);
+    // But over many frames it must still converge
+    let state = { position: 100, velocity: 500 };
+    for (let i = 0; i < 300; i++) {
+      state = solveSpring(state, 0, underdampedParams, 0.016);
+    }
+    expect(isSpringSettled(state, 0)).toBe(true);
+  });
+
+  test('should return near-settled state for very large dt (unique advantage over numerical integration)', () => {
+    // A 2-second dt would cause numerical methods to explode,
+    // but solveSpring computes the exact position at t+2s.
+    const result = solveSpring({ position: 500, velocity: 0 }, 0, underdampedParams, 2);
+    expect(isSpringSettled(result, 0)).toBe(true);
+  });
+
+  test('should converge for very bouncy spring (ζ = 0.1, slider minimum)', () => {
+    const bouncyParams = springParameters(0.1, 0.4);
+    let state = { position: 100, velocity: 0 };
+    for (let i = 0; i < 600; i++) {
+      state = solveSpring(state, 0, bouncyParams, 0.016);
+    }
+    expect(isSpringSettled(state, 0)).toBe(true);
+  });
+
+  test('should produce numerically accurate result for critically damped spring', () => {
+    // Hand-computed: ω₀ = 2π/0.4 ≈ 15.708, dt = 0.1
+    // rateCoeff = 0 + 15.708 * 100 = 1570.8
+    // envelope  = e^(-15.708 * 0.1) ≈ 0.20788
+    // newDisplacement = (100 + 1570.8 * 0.1) * 0.20788 ≈ 53.44
+    // newVelocity     = (1570.8 - 15.708 * 257.08) * 0.20788 ≈ -513.2
+    const result = solveSpring({ position: 100, velocity: 0 }, 0, criticalParams, 0.1);
+    expect(result.position).toBeCloseTo(53.44, 1);
+    expect(result.velocity).toBeCloseTo(-513.2, 0);
+  });
+
+  test('should produce numerically accurate result for underdamped spring', () => {
+    // ω₀ ≈ 15.708, ζ = 0.8, ωd = 9.4248, dt = 0.1
+    // sineCoeff = (0 + 0.8 * 15.708 * 100) / 9.4248 ≈ 133.33
+    // envelope  = e^(-0.8 * 15.708 * 0.1) ≈ 0.2844
+    // cos(0.94248) ≈ 0.5878,  sin(0.94248) ≈ 0.8090
+    // newDisplacement ≈ 47.4,  newVelocity ≈ -602.8
+    const result = solveSpring({ position: 100, velocity: 0 }, 0, underdampedParams, 0.1);
+    expect(result.position).toBeCloseTo(47.4, 0);
+    expect(result.velocity).toBeCloseTo(-602.8, 0);
+  });
+});
+
+describe('Utils - isSpringSettled', () => {
+  test('should return true when at exact target with zero velocity', () => {
+    expect(isSpringSettled({ position: 0, velocity: 0 }, 0)).toBe(true);
+  });
+
+  test('should return true when within default position threshold', () => {
+    expect(isSpringSettled({ position: 0.49, velocity: 0 }, 0)).toBe(true);
+    expect(isSpringSettled({ position: -0.49, velocity: 0 }, 0)).toBe(true);
+  });
+
+  test('should return false when outside default position threshold', () => {
+    expect(isSpringSettled({ position: 0.5, velocity: 0 }, 0)).toBe(false);
+    expect(isSpringSettled({ position: 1, velocity: 0 }, 0)).toBe(false);
+  });
+
+  test('should return true when within default velocity threshold', () => {
+    expect(isSpringSettled({ position: 0, velocity: 0.49 }, 0)).toBe(true);
+    expect(isSpringSettled({ position: 0, velocity: -0.49 }, 0)).toBe(true);
+  });
+
+  test('should return false when outside default velocity threshold', () => {
+    expect(isSpringSettled({ position: 0, velocity: 0.5 }, 0)).toBe(false);
+    expect(isSpringSettled({ position: 0, velocity: -1 }, 0)).toBe(false);
+  });
+
+  test('should return false when both position and velocity are outside threshold', () => {
+    expect(isSpringSettled({ position: 1, velocity: 1 }, 0)).toBe(false);
+  });
+
+  test('should measure position relative to target', () => {
+    expect(isSpringSettled({ position: 100.3, velocity: 0 }, 100)).toBe(true);
+    expect(isSpringSettled({ position: 100.6, velocity: 0 }, 100)).toBe(false);
+  });
+
+  test('should respect custom thresholds', () => {
+    expect(isSpringSettled({ position: 1.5, velocity: 1.5 }, 0, 2, 2)).toBe(true);
+    expect(isSpringSettled({ position: 2, velocity: 0 }, 0, 2, 2)).toBe(false);
+    expect(isSpringSettled({ position: 0, velocity: 2 }, 0, 2, 2)).toBe(false);
+  });
+});
+
+describe('Utils - projectDisplacement', () => {
+  test('should return 0 for zero velocity', () => {
+    expect(projectDisplacement(0, 0.998)).toBe(0);
+  });
+
+  test('should return positive displacement for positive velocity', () => {
+    expect(projectDisplacement(1000, 0.998)).toBeGreaterThan(0);
+  });
+
+  test('should return negative displacement for negative velocity', () => {
+    expect(projectDisplacement(-1000, 0.998)).toBeLessThan(0);
+  });
+
+  test('should be symmetric: negative velocity mirrors positive', () => {
+    const positive = projectDisplacement(1000, 0.998);
+    const negative = projectDisplacement(-1000, 0.998);
+
+    expect(positive).toBeCloseTo(-negative, 10);
+  });
+
+  test('should return correct displacement for velocity=1000 and rate=0.998', () => {
+    // (1000 / 1000 * 0.998) / (1 - 0.998) = 0.998 / 0.002 = 499
+    expect(projectDisplacement(1000, 0.998)).toBeCloseTo(499, 1);
+  });
+
+  test('should scale linearly with velocity', () => {
+    const d1 = projectDisplacement(1000, 0.998);
+    const d2 = projectDisplacement(2000, 0.998);
+
+    expect(d2).toBeCloseTo(d1 * 2, 5);
+  });
+
+  test('should return less displacement with lower deceleration rate (faster stop)', () => {
+    const fast = projectDisplacement(1000, 0.99);
+    const slow = projectDisplacement(1000, 0.998);
+
+    expect(fast).toBeLessThan(slow);
+  });
+
+  test('should return correct displacement for rate=0.99', () => {
+    // (1000 / 1000 * 0.99) / (1 - 0.99) = 0.99 / 0.01 = 99
+    expect(projectDisplacement(1000, 0.99)).toBeCloseTo(99, 1);
+  });
+});
+
+describe('VelocityTracker', () => {
+  describe('getVelocity - basic behavior', () => {
+    test('should return 0 with no samples', () => {
+      const tracker = new VelocityTracker();
+
+      expect(tracker.getVelocity(100)).toBe(0);
+    });
+
+    test('should return 0 with only one sample', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(0, 0);
+
+      expect(tracker.getVelocity(50)).toBe(0);
+    });
+
+    test('should calculate velocity from two samples', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(0, 0);
+      tracker.addSample(50, 100);
+
+      // 100px over 50ms = 2 px/ms
+      expect(tracker.getVelocity(50)).toBeCloseTo(2, 5);
+    });
+
+    test('should return negative velocity for upward movement', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(0, 100);
+      tracker.addSample(50, 0);
+
+      // -100px over 50ms = -2 px/ms
+      expect(tracker.getVelocity(100)).toBeCloseTo(-2, 5);
+    });
+
+    test('should return 0 for identical timestamps', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(100, 0);
+      tracker.addSample(100, 50);
+
+      expect(tracker.getVelocity(150)).toBe(0);
+    });
+
+    test('should use oldest and newest sample within window', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(0, 0);
+      tracker.addSample(25, 50);
+      tracker.addSample(50, 100);
+      tracker.addSample(75, 150);
+
+      // oldest in window: t=0, p=0; newest: t=75, p=150
+      // velocity = 150/75 = 2 px/ms
+      expect(tracker.getVelocity(100)).toBeCloseTo(2, 5);
+    });
+  });
+
+  describe('getVelocity - window behavior', () => {
+    test('should return 0 when all samples are outside the window', () => {
+      const tracker = new VelocityTracker(100);
+      tracker.addSample(0, 0);
+      tracker.addSample(50, 100);
+
+      // At t=200, window is [100, 200] - both samples (t=0, t=50) are outside
+      expect(tracker.getVelocity(200)).toBe(0);
+    });
+
+    test('should return 0 after a pause (no recent samples)', () => {
+      const tracker = new VelocityTracker(100);
+      tracker.addSample(0, 0);
+      tracker.addSample(20, 50);
+
+      // User pauses, releases 200ms later
+      expect(tracker.getVelocity(220)).toBe(0);
+    });
+
+    test('should respect custom window size', () => {
+      const tracker = new VelocityTracker(200);
+      tracker.addSample(0, 0);
+      tracker.addSample(150, 300);
+
+      // Both in window [0-200] → velocity = 300/150 = 2 px/ms
+      expect(tracker.getVelocity(200)).toBeCloseTo(2, 5);
+    });
+
+    test('should exclude samples outside window even if others are inside', () => {
+      const tracker = new VelocityTracker(100);
+      tracker.addSample(0, 0); // outside window at t=150 (cutoff=50)
+      tracker.addSample(60, 60);
+      tracker.addSample(120, 120);
+
+      // At t=150, cutoff=50: samples at t=60 and t=120 are in window
+      // velocity = (120-60)/(120-60) = 1 px/ms
+      expect(tracker.getVelocity(150)).toBeCloseTo(1, 5);
+    });
+  });
+
+  describe('reset', () => {
+    test('should clear all samples', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(0, 0);
+      tracker.addSample(50, 100);
+
+      tracker.reset();
+
+      expect(tracker.getVelocity(100)).toBe(0);
+    });
+
+    test('should allow new samples after reset', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(0, 0);
+      tracker.addSample(50, 100);
+      tracker.reset();
+      tracker.addSample(0, 0);
+      tracker.addSample(50, 200);
+
+      expect(tracker.getVelocity(50)).toBeCloseTo(4, 5);
+    });
+  });
+
+  describe('addSample - pruning', () => {
+    test('should prune samples older than 2x window to prevent memory growth', () => {
+      const tracker = new VelocityTracker(100);
+      tracker.addSample(0, 0); // will be pruned when t=300 is added
+      tracker.addSample(50, 50); // will be pruned when t=300 is added
+      tracker.addSample(300, 300); // cutoff = 300 - 200 = 100; t=0 and t=50 are pruned
+
+      // Only {t=300} remains; window at t=350 is [250-350], t=300 is inside but alone
+      expect(tracker.getVelocity(350)).toBe(0);
+    });
+
+    test('should keep samples within 2x window after pruning', () => {
+      const tracker = new VelocityTracker(100);
+      tracker.addSample(150, 150);
+      tracker.addSample(200, 200); // cutoff = 200 - 200 = 0; t=150 > 0, kept
+
+      // Both in window at t=250 (cutoff=150): t=150 >= 150, t=200 >= 150
+      expect(tracker.getVelocity(250)).toBeCloseTo(1, 5);
+    });
   });
 });

@@ -1,8 +1,11 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { SELECTOR } from '../../src/js/constants';
-import { createSheet, createTrigger, advanceTimersAndFlush } from '../setup/test-utils';
-
-const TRANSITION_WAIT = BootstrapSheet.Default.animationDuration + 50;
+import {
+  createSheet,
+  createTrigger,
+  advanceTimersAndFlush,
+  TRANSITION_WAIT,
+} from '../setup/test-utils';
 
 describe('BootstrapSheet - Declarative API', () => {
   describe('Toggle triggers [data-bs-toggle="sheet"]', () => {
@@ -688,14 +691,6 @@ describe('BootstrapSheet - Declarative API', () => {
   });
 
   describe('Global click handler cleanup', () => {
-    test('should attach global click handler on module load', () => {
-      // Global handler is attached when module loads
-      // This is tested implicitly by all other tests working
-      // Creating a sheet to verify module is loaded
-      const sheet = createSheet();
-      expect(sheet).toBeInTheDocument();
-    });
-
     test('should use event delegation for dynamic triggers', async () => {
       const sheet = createSheet();
 

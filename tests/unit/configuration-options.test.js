@@ -1,10 +1,28 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { CLASS_NAME, SELECTOR } from '../../src/js/constants';
-import { createSheet, advanceTimersAndFlush } from '../setup/test-utils';
-
-const TRANSITION_WAIT = BootstrapSheet.Default.animationDuration + 50;
+import { createSheet, advanceTimersAndFlush, TRANSITION_WAIT } from '../setup/test-utils';
 
 describe('BootstrapSheet - Configuration Options', () => {
+  describe('Static properties', () => {
+    test('NAME should return component name', () => {
+      expect(BootstrapSheet.NAME).toBe('sheet');
+    });
+  });
+
+  describe('Deprecated options', () => {
+    test('should warn when deprecated option is passed', () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const sheet = createSheet();
+
+      new BootstrapSheet(sheet, { swipeThreshold: 80 });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[sheet] Option "swipeThreshold" is deprecated'),
+      );
+      consoleWarnSpy.mockRestore();
+    });
+  });
+
   describe('Boolean options', () => {
     test('backdrop option should control backdrop creation', async () => {
       const sheet1 = createSheet();
@@ -42,6 +60,23 @@ describe('BootstrapSheet - Configuration Options', () => {
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
       expect(instance.isShown).toBe(true);
+    });
+
+    test('static backdrop click should trigger shake effect', async () => {
+      const sheet = createSheet();
+      const instance = new BootstrapSheet(sheet, { backdrop: 'static' });
+
+      const animateSpy = jest.fn();
+      sheet.animate = animateSpy;
+
+      instance.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
+
+      backdrop.click();
+
+      expect(animateSpy).toHaveBeenCalled();
     });
 
     test('keyboard option should control ESC key behavior', async () => {
@@ -164,12 +199,12 @@ describe('BootstrapSheet - Configuration Options', () => {
   });
 
   describe('Number options', () => {
-    test('swipeThreshold option should affect close threshold', async () => {
-      const sheet = createSheet({ withDragHandle: true, withHeader: true });
+    test('springDampingRatio and springResponse options should be accepted', async () => {
+      const sheet = createSheet({ withDragHandle: true });
       const instance = new BootstrapSheet(sheet, {
         gestures: true,
-        swipeThreshold: 200,
-        closeThresholdRatio: 0,
+        springDampingRatio: 1.0,
+        springResponse: 0.3,
       });
 
       Object.defineProperty(sheet, 'offsetHeight', {
@@ -182,231 +217,27 @@ describe('BootstrapSheet - Configuration Options', () => {
 
       const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
 
-      const pointerDown = new PointerEvent('pointerdown', {
+      // Events upfront to prevent timestamp drift
+      const downEvent = new PointerEvent('pointerdown', {
         bubbles: true,
         clientY: 0,
         pointerId: 1,
       });
-      handle.dispatchEvent(pointerDown);
-
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 150,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
-
-      jest.advanceTimersByTime(16);
-
-      const pointerUp = new PointerEvent('pointerup', {
-        bubbles: true,
-        clientY: 150,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerUp);
-
-      await advanceTimersAndFlush(TRANSITION_WAIT * 2);
-
-      // Should not close (150 < 200)
-      expect(instance.isShown).toBe(true);
-    });
-
-    test('velocityThreshold option should affect velocity-based close', async () => {
-      const sheet = createSheet({ withDragHandle: true, withHeader: true });
-      const instance = new BootstrapSheet(sheet, {
-        gestures: true,
-        velocityThreshold: 10,
-        minCloseDistance: 20,
-      });
-
-      Object.defineProperty(sheet, 'offsetHeight', {
-        configurable: true,
-        value: 400,
-      });
-
-      instance.show();
-      await advanceTimersAndFlush(TRANSITION_WAIT);
-
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
-
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
-
-      const pointerMove = new PointerEvent('pointermove', {
+      const moveEvent = new PointerEvent('pointermove', {
         bubbles: true,
         clientY: 30,
         pointerId: 1,
       });
-      document.dispatchEvent(pointerMove);
+      const upEvent = new PointerEvent('pointerup', { bubbles: true, clientY: 30, pointerId: 1 });
 
+      handle.dispatchEvent(downEvent);
+      document.dispatchEvent(moveEvent);
       jest.advanceTimersByTime(16);
+      document.dispatchEvent(upEvent);
 
-      const pointerUp = new PointerEvent('pointerup', {
-        bubbles: true,
-        clientY: 30,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerUp);
-
-      await advanceTimersAndFlush(TRANSITION_WAIT * 2);
-
-      // Should not close (velocity < 10)
+      // Spring snap-back completes - sheet stays open
+      await advanceTimersAndFlush(2000);
       expect(instance.isShown).toBe(true);
-    });
-
-    test('animationDuration option should control transition timing', async () => {
-      const customDuration = 500;
-      const sheet = createSheet();
-      const instance = new BootstrapSheet(sheet, {
-        animationDuration: customDuration,
-      });
-
-      const shownSpy = jest.fn();
-      sheet.addEventListener('shown.bs.sheet', shownSpy);
-
-      instance.show();
-
-      // Should not be called before custom duration
-      jest.advanceTimersByTime(customDuration - 100);
-      expect(shownSpy).not.toHaveBeenCalled();
-
-      // Should be called after custom duration
-      await advanceTimersAndFlush(200);
-      expect(shownSpy).toHaveBeenCalled();
-    });
-
-    test('closeThresholdRatio option should affect close threshold', async () => {
-      const sheet = createSheet({ withDragHandle: true, withHeader: true });
-      const instance = new BootstrapSheet(sheet, {
-        gestures: true,
-        closeThresholdRatio: 0.5,
-        swipeThreshold: 0,
-      });
-
-      Object.defineProperty(sheet, 'offsetHeight', {
-        configurable: true,
-        value: 400,
-      });
-
-      instance.show();
-      await advanceTimersAndFlush(TRANSITION_WAIT);
-
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
-
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
-
-      // Drag 51% of height (should close)
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 210,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
-
-      jest.advanceTimersByTime(16);
-
-      const pointerUp = new PointerEvent('pointerup', {
-        bubbles: true,
-        clientY: 210,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerUp);
-
-      await advanceTimersAndFlush(TRANSITION_WAIT * 2);
-
-      expect(instance.isShown).toBe(false);
-    });
-
-    test('dragResistanceUp option should affect upward drag resistance', async () => {
-      const sheet = createSheet({ withDragHandle: true, withHeader: true });
-      const instance = new BootstrapSheet(sheet, {
-        gestures: true,
-        dragResistanceUp: 0.9,
-      });
-
-      Object.defineProperty(sheet, 'offsetHeight', {
-        configurable: true,
-        value: 400,
-      });
-
-      instance.show();
-      await advanceTimersAndFlush(TRANSITION_WAIT);
-
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
-
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 100,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
-
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
-
-      jest.advanceTimersByTime(16);
-
-      const transform = sheet.style.transform;
-      const match = transform.match(/translateY\((-?\d+(?:\.\d+)?)/);
-      const translateY = match ? parseFloat(match[1]) : 0;
-
-      // High resistance means less movement
-      expect(Math.abs(translateY)).toBeLessThan(60);
-    });
-
-    test('dragResistanceDown option should affect downward drag resistance', async () => {
-      const sheet = createSheet({ withDragHandle: true, withHeader: true });
-      const instance = new BootstrapSheet(sheet, {
-        gestures: true,
-        dragResistanceDown: 0.5,
-      });
-
-      Object.defineProperty(sheet, 'offsetHeight', {
-        configurable: true,
-        value: 400,
-      });
-
-      instance.show();
-      await advanceTimersAndFlush(TRANSITION_WAIT);
-
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
-
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
-
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 100,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
-
-      jest.advanceTimersByTime(16);
-
-      const transform = sheet.style.transform;
-      const match = transform.match(/translateY\((-?\d+(?:\.\d+)?)/);
-      const translateY = match ? parseFloat(match[1]) : 0;
-
-      // Medium resistance means some movement but not full
-      expect(translateY).toBeGreaterThan(0);
-      expect(translateY).toBeLessThan(100);
     });
   });
 
@@ -428,10 +259,8 @@ describe('BootstrapSheet - Configuration Options', () => {
     test('should parse number data attributes correctly', () => {
       const sheet = createSheet({
         dataAttributes: {
-          'swipe-threshold': '100',
-          'velocity-threshold': '0.8',
-          'animation-duration': '500',
-          'close-threshold-ratio': '0.4',
+          'spring-damping-ratio': '0.8',
+          'spring-response': '0.3',
         },
       });
 
@@ -568,22 +397,12 @@ describe('BootstrapSheet - Configuration Options', () => {
     test('should throw TypeError for invalid number options', () => {
       const sheet1 = createSheet();
       expect(() => {
-        new BootstrapSheet(sheet1, { swipeThreshold: '50' });
+        new BootstrapSheet(sheet1, { springDampingRatio: '0.8' });
       }).toThrow(TypeError);
 
       const sheet2 = createSheet();
       expect(() => {
-        new BootstrapSheet(sheet2, { velocityThreshold: true });
-      }).toThrow(TypeError);
-
-      const sheet3 = createSheet();
-      expect(() => {
-        new BootstrapSheet(sheet3, { animationDuration: '300' });
-      }).toThrow(TypeError);
-
-      const sheet4 = createSheet();
-      expect(() => {
-        new BootstrapSheet(sheet4, { closeThresholdRatio: '0.3' });
+        new BootstrapSheet(sheet2, { springResponse: true });
       }).toThrow(TypeError);
     });
 
@@ -597,9 +416,9 @@ describe('BootstrapSheet - Configuration Options', () => {
       );
 
       expect(() => {
-        new BootstrapSheet(sheet, { animationDuration: '300' });
+        new BootstrapSheet(sheet, { springDampingRatio: '0.8' });
       }).toThrow(
-        '[sheet] Option "animationDuration" has invalid type: expected number, but received string',
+        '[sheet] Option "springDampingRatio" has invalid type: expected number, but received string',
       );
     });
 
@@ -612,6 +431,80 @@ describe('BootstrapSheet - Configuration Options', () => {
           keyboard: undefined,
         });
       }).not.toThrow();
+    });
+  });
+
+  describe('Spring boundary values', () => {
+    test('springResponse = 0.1 (minimum) should show and settle without flickering', async () => {
+      const sheet = createSheet();
+      Object.defineProperty(sheet, 'offsetHeight', { configurable: true, value: 400 });
+      const instance = new BootstrapSheet(sheet, {
+        springDampingRatio: 0.8,
+        springResponse: 0.1,
+      });
+
+      instance.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      expect(instance.isShown).toBe(true);
+      expect(instance.isTransitioning).toBe(false);
+    });
+
+    test('springResponse = 1.0 (slow) should show and settle', async () => {
+      const sheet = createSheet();
+      const instance = new BootstrapSheet(sheet, {
+        springDampingRatio: 1.0,
+        springResponse: 1.0,
+      });
+
+      instance.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      expect(instance.isShown).toBe(true);
+      expect(instance.isTransitioning).toBe(false);
+    });
+
+    test('springDampingRatio = 2.0 (overdamped) should show and settle', async () => {
+      const sheet = createSheet();
+      const instance = new BootstrapSheet(sheet, {
+        springDampingRatio: 2.0,
+        springResponse: 0.4,
+      });
+
+      instance.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      expect(instance.isShown).toBe(true);
+      expect(instance.isTransitioning).toBe(false);
+    });
+
+    test('springDampingRatio = 0.2 (bouncy) should show and eventually settle', async () => {
+      const sheet = createSheet();
+      const instance = new BootstrapSheet(sheet, {
+        springDampingRatio: 0.2,
+        springResponse: 0.4,
+      });
+
+      instance.show();
+      await advanceTimersAndFlush(3000);
+
+      expect(instance.isShown).toBe(true);
+      expect(instance.isTransitioning).toBe(false);
+    });
+
+    test('extreme combination: response = 0.1 + dampingRatio = 0.2 should settle', async () => {
+      const sheet = createSheet();
+      Object.defineProperty(sheet, 'offsetHeight', { configurable: true, value: 400 });
+      const instance = new BootstrapSheet(sheet, {
+        springDampingRatio: 0.2,
+        springResponse: 0.1,
+      });
+
+      instance.show();
+      await advanceTimersAndFlush(5000);
+
+      expect(instance.isShown).toBe(true);
+      expect(instance.isTransitioning).toBe(false);
     });
   });
 
@@ -645,12 +538,8 @@ describe('BootstrapSheet - Configuration Options', () => {
       const sheet = createSheet();
       expect(() => {
         new BootstrapSheet(sheet, {
-          swipeThreshold: 0,
-          velocityThreshold: 0,
-          animationDuration: 1,
-          closeThresholdRatio: 0,
-          dragResistanceUp: 0,
-          dragResistanceDown: 0,
+          springDampingRatio: 0,
+          springResponse: 0.1,
         });
       }).not.toThrow();
     });
@@ -659,8 +548,8 @@ describe('BootstrapSheet - Configuration Options', () => {
       const sheet = createSheet();
       expect(() => {
         new BootstrapSheet(sheet, {
-          swipeThreshold: -10,
-          animationDuration: -100,
+          springDampingRatio: -1,
+          springResponse: -0.1,
         });
       }).not.toThrow();
     });

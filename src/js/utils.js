@@ -36,9 +36,9 @@ export const parseAttributeValue = (value) => {
  * @param {string} [prefix='bs'] - The data attribute prefix (without 'data-')
  * @returns {Object} Object with camelCase keys and parsed values
  * @example
- * // Given an element <div data-bs-backdrop="true" data-bs-animation-duration="300"></div>
+ * // Given an element <div data-bs-backdrop="true"></div>
  * extractDataAttributes(element);
- * // Returns: { backdrop: true, animationDuration: 300 }
+ * // Returns: { backdrop: true }
  */
 export const extractDataAttributes = (element, prefix = 'bs') => {
   if (!(element instanceof Element)) {
@@ -102,22 +102,6 @@ export const resolveElement = (elementOrSelector, context = document) => {
   }
 
   return null;
-};
-
-/**
- * Force a reflow/repaint of the element
- * @param {Element} element - The element to reflow
- * @returns {number} The element's offsetHeight
- * @see {@link https://gist.github.com/paulirish/5d52fb081b3570c81e3a}
- * @example
- * reflow(someElement); // forces reflow and returns offsetHeight
- */
-export const reflow = (element) => {
-  if (!(element instanceof Element)) {
-    return 0;
-  }
-
-  return element.offsetHeight;
 };
 
 /**
@@ -244,11 +228,11 @@ export const parseExpectedTypes = (types) => {
  * @param {Object} configTypes - Type definitions
  * @throws {TypeError} If a config property has an invalid type
  * @example
- * const config = { backdrop: true, animationDuration: 300 };
- * const configTypes = { backdrop: 'boolean', animationDuration: 'number' };
+ * const config = { backdrop: true };
+ * const configTypes = { backdrop: 'boolean' };
  * validateConfigTypes('Sheet', config, configTypes); // No error
  *
- * const invalidConfig = { backdrop: 'yes', animationDuration: 300 };
+ * const invalidConfig = { backdrop: 'yes' };
  * validateConfigTypes('Sheet', invalidConfig, configTypes);
  * // Throws TypeError: [Sheet] Option "backdrop" has invalid type: expected boolean, but received string.
  */
@@ -276,84 +260,6 @@ export const validateConfigTypes = (componentName, config = {}, configTypes = {}
       );
     }
   }
-};
-
-/**
- * Execute callback after CSS transition completes or after a timeout
- * @param {Element} element - The DOM element to observe
- * @param {Function} callback - The callback function to execute
- * @param {number} [duration=300] - Expected transition duration in ms
- * @returns {Function} Cleanup function to cancel the callback
- * @example
- * const cleanup = executeAfterTransition(someElement, () => {
- *   console.log('Transition ended or timeout reached');
- * }, 500);
- *
- * // To cancel the callback before it executes:
- * cleanup();
- */
-export const executeAfterTransition = (element, callback, duration = 300) => {
-  if (!(element instanceof Element)) {
-    callback();
-    return () => {};
-  }
-
-  let isExecuted = false;
-  let timeoutId = null;
-
-  /**
-   * Execute the callback once
-   * @inner
-   */
-  const executeOnce = () => {
-    if (isExecuted) {
-      return;
-    }
-
-    isExecuted = true;
-    cleanupListeners();
-
-    try {
-      callback();
-    } catch (error) {
-      console.error('Error in transition callback:', error);
-    }
-  };
-
-  /**
-   * Handle the transition end event
-   * @param {TransitionEvent} event - The transition end event
-   * @inner
-   */
-  const handleTransitionEnd = (event) => {
-    if (event.target === element) {
-      executeOnce();
-    }
-  };
-
-  /**
-   * Cleanup event listeners and timeout
-   * @inner
-   */
-  const cleanupListeners = () => {
-    element.removeEventListener('transitionend', handleTransitionEnd);
-
-    if (timeoutId !== null) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
-    }
-  };
-
-  element.addEventListener('transitionend', handleTransitionEnd);
-
-  timeoutId = setTimeout(executeOnce, duration + 50);
-
-  return () => {
-    if (!isExecuted) {
-      cleanupListeners();
-      isExecuted = true;
-    }
-  };
 };
 
 /**
@@ -387,3 +293,252 @@ export const getTranslateY = (element) => {
     return 0;
   }
 };
+
+/**
+ * Apple's rubber band formula (reverse-engineered from UIScrollView).
+ *
+ * Attempt to move past a boundary results in diminishing returns:
+ * the displayed offset asymptotically approaches `dimension` but never reaches it.
+ * Initial slope equals `coefficient`, so the first few pixels of overscroll
+ * move at (coefficient × 100)% of finger speed.
+ *
+ * Formula: b = (1 - 1 / (x * c / d + 1)) * d
+ * Equivalent: b = (x * d * c) / (d + c * x)
+ *
+ * @param {number} offset - How far past the boundary (must be >= 0)
+ * @param {number} dimension - Reference dimension (sheet height)
+ * @param {number} coefficient - Resistance coefficient (Apple uses 0.55)
+ * @returns {number} Displayed offset (always >= 0, always < dimension)
+ * @see {@link https://gist.github.com/originell/6961057} Analysis of Apple's rubber band scrolling
+ */
+export const rubberBand = (offset, dimension, coefficient) => {
+  if (offset === 0 || dimension === 0) {
+    return 0;
+  }
+
+  return (1.0 - 1.0 / ((offset * coefficient) / dimension + 1.0)) * dimension;
+};
+
+/**
+ * Convert designer-friendly spring parameters to physical constants.
+ *
+ * Apple introduced this parameterization at WWDC 2018 ("Designing Fluid Interfaces"):
+ * - `dampingRatio` controls bounce (1.0 = no bounce, <1.0 = bouncy)
+ * - `response` controls speed (lower = faster, analogous to duration)
+ *
+ * Conversion assumes mass = 1:
+ * - `stiffness = (2π / response)²`
+ * - `damping = 4π · dampingRatio / response`
+ *
+ * @param {number} dampingRatio - Damping ratio (1.0 = critically damped, 0.8 = slight bounce)
+ * @param {number} response - Response time in seconds (0.4 is a good default)
+ * @returns {{ stiffness: number, damping: number, mass: number }} Physical spring constants
+ */
+export const springParameters = (dampingRatio, response) => {
+  return {
+    stiffness: Math.pow((2 * Math.PI) / response, 2),
+    damping: (4 * Math.PI * dampingRatio) / response,
+    mass: 1,
+  };
+};
+
+/**
+ * Check whether a spring animation has settled (converged to target).
+ *
+ * The animation is considered settled when both the distance from the target
+ * and the velocity are below the given threshold. Using 0.5px as the default
+ * threshold matches Apple's behavior - sub-pixel movements are imperceptible.
+ *
+ * @param {{ position: number, velocity: number }} state - Current spring state
+ * @param {number} target - Target position
+ * @param {number} [positionThreshold=0.5] - Maximum distance from target (px)
+ * @param {number} [velocityThreshold=0.5] - Maximum velocity (px/s)
+ * @returns {boolean} True if the spring has settled
+ */
+export const isSpringSettled = (
+  state,
+  target,
+  positionThreshold = 0.5,
+  velocityThreshold = 0.5,
+) => {
+  return (
+    Math.abs(state.position - target) < positionThreshold &&
+    Math.abs(state.velocity) < velocityThreshold
+  );
+};
+
+/**
+ * Project how far a decelerating object will travel before stopping.
+ *
+ * This is Apple's formula from WWDC 2018 "Designing Fluid Interfaces".
+ * Given a release velocity and a deceleration rate, it computes the total
+ * displacement the object would cover if allowed to coast to a stop.
+ *
+ * UIScrollView uses two deceleration rates:
+ * - 0.998 (UIScrollView.DecelerationRate.normal) - default, ~499px per 1000px/s
+ * - 0.99  (UIScrollView.DecelerationRate.fast)   - snappier, ~99px per 1000px/s
+ *
+ * The exact integral formula is `-v₀ / (1000 · ln(d))`, which differs from
+ * Apple's published approximation by less than 1%.
+ *
+ * @param {number} velocity - Release velocity in px/s (positive = downward)
+ * @param {number} decelerationRate - Deceleration rate (0–1, higher = more coasting)
+ * @returns {number} Projected displacement in px (same sign as velocity)
+ */
+export const projectDisplacement = (velocity, decelerationRate) => {
+  return ((velocity / 1000) * decelerationRate) / (1 - decelerationRate);
+};
+
+/**
+ * Advance spring state by dt using the exact analytical solution.
+ *
+ * Unconditionally stable for any dt, stiffness, or damping - no sub-stepping
+ * or numerical integration required. Solves the ODE exactly:
+ * m·x'' + c·x' + k·(x − target) = 0
+ *
+ * Three regimes, determined by the damping ratio ζ = c / (2√km):
+ *   ζ < 1  underdamped  - oscillatory exponential decay
+ *   ζ ≈ 1  critically damped - fastest non-oscillatory convergence
+ *   ζ > 1  overdamped  - two real exponentials, slower than critical
+ *
+ * @param {{ position: number, velocity: number }} state - Current state
+ * @param {number} target - Target position the spring pulls toward
+ * @param {{ stiffness: number, damping: number, mass: number }} params - Spring constants
+ * @param {number} dt - Time step in seconds (any positive value is stable)
+ * @returns {{ position: number, velocity: number }} Exact state at t + dt
+ */
+export const solveSpring = (state, target, params, dt) => {
+  const { position, velocity } = state;
+  const { stiffness, damping, mass } = params;
+
+  // Initial conditions
+  const d0 = position - target;
+  const v0 = velocity;
+
+  // Canonical parameters
+  const omega0 = Math.sqrt(stiffness / mass);
+  const zeta = damping / (2 * Math.sqrt(stiffness * mass));
+
+  // Common exponential decay
+  const expDecay = Math.exp(-zeta * omega0 * dt);
+
+  // Wider critical band for numerical stability
+  const EPS = 1e-4;
+
+  let d, v;
+
+  if (zeta > 1 - EPS && zeta < 1 + EPS) {
+    // Critically damped: d(t) = (A + B·t)·e^(−ω₀t)
+    const B = v0 + omega0 * d0;
+    d = (d0 + B * dt) * expDecay;
+    v = (B - omega0 * (d0 + B * dt)) * expDecay;
+  } else if (zeta < 1) {
+    // Underdamped: d(t) = e^(−ζω₀t)·[A·cos(ωd·t) + B·sin(ωd·t)]
+    const omegaD = omega0 * Math.sqrt(1 - zeta * zeta);
+    const B = (v0 + zeta * omega0 * d0) / omegaD;
+    const cosT = Math.cos(omegaD * dt);
+    const sinT = Math.sin(omegaD * dt);
+    d = expDecay * (d0 * cosT + B * sinT);
+    v =
+      expDecay *
+      ((-zeta * omega0 * d0 + omegaD * B) * cosT + (-zeta * omega0 * B - omegaD * d0) * sinT);
+  } else {
+    // Overdamped: d(t) = A·e^(r₁t) + B·e^(r₂t), r₁,r₂ = −ζω₀ ± γ
+    const gamma = omega0 * Math.sqrt(zeta * zeta - 1);
+    const r1 = -zeta * omega0 + gamma;
+    const r2 = -zeta * omega0 - gamma;
+    const A = (v0 - r2 * d0) / (2 * gamma);
+    const B = d0 - A;
+    const e1 = Math.exp(r1 * dt);
+    const e2 = Math.exp(r2 * dt);
+    d = A * e1 + B * e2;
+    v = r1 * A * e1 + r2 * B * e2;
+  }
+
+  return { position: target + d, velocity: v };
+};
+
+/**
+ * Windowed velocity tracker for touch/pointer gestures.
+ *
+ * iOS's UIPanGestureRecognizer computes velocity from recent touch samples
+ * rather than the full gesture history. This class replicates that approach
+ * by maintaining a sliding window of {timestamp, position} samples and
+ * computing velocity from the oldest and newest entries within the window.
+ *
+ * Key behaviors:
+ * - Only samples within the last `windowMs` milliseconds are considered
+ * - If the gesture pauses (gap > windowMs before release), velocity is 0
+ * - Guards against division by zero from identical timestamps
+ * - Uses event.timeStamp (backed by performance.now) for microsecond precision
+ */
+export class VelocityTracker {
+  /** @type {{ timestamp: number, position: number }[]} */
+  #samples = [];
+
+  /** @type {number} Window size in milliseconds */
+  #windowMs;
+
+  /**
+   * @param {number} [windowMs=100] - Time window for velocity calculation (ms)
+   */
+  constructor(windowMs = 100) {
+    this.#windowMs = windowMs;
+  }
+
+  /**
+   * Record a position sample at the given timestamp.
+   *
+   * Old samples (older than 2× the window) are pruned to prevent
+   * unbounded memory growth during long drag gestures.
+   *
+   * @param {number} timestamp - Event timestamp in ms (use event.timeStamp)
+   * @param {number} position - Current position in px
+   * @returns {void}
+   */
+  addSample(timestamp, position) {
+    this.#samples.push({ timestamp, position });
+
+    // Prune samples older than 2× window to bound memory
+    const cutoff = timestamp - this.#windowMs * 2;
+    this.#samples = this.#samples.filter((s) => s.timestamp > cutoff);
+  }
+
+  /**
+   * Compute velocity from samples within the time window.
+   *
+   * Returns 0 if:
+   * - Fewer than 2 samples exist within the window
+   * - Time delta between first and last sample is 0 (identical timestamps)
+   * - The gesture has paused (no recent samples)
+   *
+   * @param {number} currentTimestamp - Current time in ms (from pointerup event)
+   * @returns {number} Velocity in px/ms (positive = downward movement)
+   */
+  getVelocity(currentTimestamp) {
+    const cutoff = currentTimestamp - this.#windowMs;
+    const recent = this.#samples.filter((s) => s.timestamp >= cutoff);
+
+    if (recent.length < 2) {
+      return 0;
+    }
+
+    const first = recent[0];
+    const last = recent[recent.length - 1];
+    const dt = last.timestamp - first.timestamp;
+
+    if (dt === 0) {
+      return 0;
+    }
+
+    return (last.position - first.position) / dt;
+  }
+
+  /**
+   * Clear all recorded samples. Call when a new gesture begins.
+   * @returns {void}
+   */
+  reset() {
+    this.#samples = [];
+  }
+}
