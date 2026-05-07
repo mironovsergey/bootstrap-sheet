@@ -2,8 +2,6 @@ import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { CLASS_NAME } from '../../src/js/constants';
 import { createSheet } from '../setup/test-utils';
 
-const ANIMATION_DURATION = BootstrapSheet.Default.animationDuration;
-
 describe('BootstrapSheet - Initialization', () => {
   describe('Constructor', () => {
     test('should create instance with valid element', () => {
@@ -69,12 +67,6 @@ describe('BootstrapSheet - Initialization', () => {
       expect(() => {
         new BootstrapSheet(sheet, {
           keyboard: 'yes',
-        });
-      }).toThrow(TypeError);
-
-      expect(() => {
-        new BootstrapSheet(sheet, {
-          animationDuration: `${ANIMATION_DURATION}`,
         });
       }).toThrow(TypeError);
     });

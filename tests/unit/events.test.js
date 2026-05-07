@@ -1,8 +1,6 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { EVENT, CLASS_NAME, SELECTOR } from '../../src/js/constants';
-import { createSheet, advanceTimersAndFlush } from '../setup/test-utils';
-
-const TRANSITION_WAIT = BootstrapSheet.Default.animationDuration + 50;
+import { createSheet, advanceTimersAndFlush, TRANSITION_WAIT } from '../setup/test-utils';
 
 describe('BootstrapSheet - Events', () => {
   describe(EVENT.SHOW, () => {
@@ -106,7 +104,7 @@ describe('BootstrapSheet - Events', () => {
       expect(shownSpy).toHaveBeenCalled();
     });
 
-    test('should fire even if show is called multiple times', async () => {
+    test('should fire shown exactly once when show() is called multiple times', async () => {
       const sheet = createSheet();
       const instance = new BootstrapSheet(sheet);
 
@@ -255,7 +253,7 @@ describe('BootstrapSheet - Events', () => {
       expect(instance.isShown).toBe(false);
     });
 
-    test('should fire backdrop is removed', async () => {
+    test('should fire when backdrop is removed', async () => {
       const sheet = createSheet();
       const instance = new BootstrapSheet(sheet, { backdrop: true });
 

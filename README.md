@@ -9,7 +9,7 @@
 [![Known Vulnerabilities](https://snyk.io/test/github/mironovsergey/bootstrap-sheet/badge.svg)](https://snyk.io/test/github/mironovsergey/bootstrap-sheet)
 [![Demo](https://img.shields.io/badge/demo-live-success)](https://mironovsergey.github.io/bootstrap-sheet/)
 
-Touch-friendly bottom sheet component for Bootstrap 5 — supports swipe gestures, backdrop, focus management, and is built with accessibility in mind.
+Touch-friendly bottom sheet component for Bootstrap 5 - supports physics-based swipe gestures with spring animations, backdrop, focus management, and is built with accessibility in mind.
 
 [Documentation](https://mironovsergey.github.io/bootstrap-sheet/) · [Report Bug](https://github.com/mironovsergey/bootstrap-sheet/issues) · [Request Feature](https://github.com/mironovsergey/bootstrap-sheet/issues) · [Discussions](https://github.com/mironovsergey/bootstrap-sheet/discussions)
 
@@ -32,7 +32,7 @@ Touch-friendly bottom sheet component for Bootstrap 5 — supports swipe gesture
   - [Options](#options)
     - [UI Options](#ui-options)
     - [Gesture Options](#gesture-options)
-    - [Animation Options](#animation-options)
+    - [Deprecated Options](#deprecated-options)
   - [Methods](#methods)
   - [Properties](#properties)
   - [Events](#events)
@@ -164,22 +164,23 @@ Options can be passed via data attributes or JavaScript. For data attributes, ap
 
 ### Gesture Options
 
-| Name                  | Type    | Default | Description                                                 |
-| --------------------- | ------- | ------- | ----------------------------------------------------------- |
-| `gestures`            | boolean | `true`  | Enable/disable swipe gestures.                              |
-| `swipeThreshold`      | number  | `50`    | Minimum swipe distance (px) to trigger close.               |
-| `velocityThreshold`   | number  | `0.5`   | Minimum velocity (px/ms) to trigger close.                  |
-| `minCloseDistance`    | number  | `50`    | Minimum distance (px) for velocity-based close.             |
-| `closeThresholdRatio` | number  | `0.3`   | Ratio of sheet height (0-1) to trigger close when released. |
+Dismissal is driven by inertia projection: when the user releases the sheet, its velocity is projected forward using a deceleration curve. If the projected resting position exceeds 50% of the sheet height, the sheet closes; otherwise it snaps back. `springDampingRatio` and `springResponse` tune the feel of the snap-back and dismiss animations.
 
-### Animation Options
+> **Note:** Gesture handling requires a drag handle element inside the sheet: `<div data-bs-drag="sheet"></div>`. Without it, `gestures: true` has no effect.
 
-| Name                 | Type   | Default | Description                                                    |
-| -------------------- | ------ | ------- | -------------------------------------------------------------- |
-| `animationDuration`  | number | `300`   | Animation duration in milliseconds.                            |
-| `projectionTime`     | number | `200`   | Time (ms) to project velocity for momentum-based closing.      |
-| `dragResistanceUp`   | number | `0.75`  | Resistance when dragging up (0-1, higher = more resistance).   |
-| `dragResistanceDown` | number | `0.01`  | Resistance when dragging down (0-1, higher = more resistance). |
+| Name                 | Type    | Default | Description                                                                                                            |
+| -------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `gestures`           | boolean | `true`  | Enable/disable swipe gestures.                                                                                         |
+| `springDampingRatio` | number  | `0.8`   | Damping ratio for the spring animation. `1.0` = no bounce (critically damped). Values below `1.0` add a subtle bounce. |
+| `springResponse`     | number  | `0.4`   | Response time of the spring in seconds. Lower values make the spring faster and snappier.                              |
+
+### Deprecated Options
+
+The following options have no effect if passed (a console warning is shown):
+
+`animationDuration`, `swipeThreshold`, `velocityThreshold`, `minCloseDistance`, `closeThresholdRatio`, `projectionTime`, `dragResistanceUp`, `dragResistanceDown`
+
+Use `springDampingRatio` and `springResponse` to tune gesture feel instead.
 
 ---
 
@@ -218,14 +219,20 @@ All events are fired at the sheet element itself.
 | Event Type        | Description                                                                                                      |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `show.bs.sheet`   | Fired immediately when the `show()` method is called.                                                            |
-| `shown.bs.sheet`  | Fired when the sheet has been made visible to the user (after CSS transitions complete).                         |
+| `shown.bs.sheet`  | Fired when the sheet has been made visible to the user (after the animation completes).                          |
 | `hide.bs.sheet`   | Fired immediately when the `hide()` method is called.                                                            |
-| `hidden.bs.sheet` | Fired when the sheet has finished being hidden from the user (after CSS transitions complete).                   |
+| `hidden.bs.sheet` | Fired when the sheet has finished being hidden from the user (after the animation completes).                    |
 | `slide.bs.sheet`  | Fired continuously during drag/slide gestures. Event detail contains `velocity`, `adjustedY`, `deltaY`, `ratio`. |
 
 ```javascript
 document.getElementById('mySheet').addEventListener('shown.bs.sheet', (event) => {
   console.log('Sheet is now visible');
+});
+
+document.getElementById('mySheet').addEventListener('slide.bs.sheet', (event) => {
+  const { velocity, adjustedY, deltaY, ratio } = event.detail;
+  // ratio: 0 = fully open, 1 = fully closed
+  console.log(`Drag progress: ${Math.round(ratio * 100)}%`);
 });
 ```
 
@@ -248,10 +255,6 @@ $sheet-max-height: 90vh !default;
 $sheet-bg: var(--bs-body-bg, #fff) !default;
 $sheet-backdrop-bg: rgba(0, 0, 0, 0.5) !default;
 $sheet-backdrop-backdrop-filter: blur(2px) !default;
-
-// Transitions
-$sheet-transition-duration: 0.3s !default;
-$sheet-transition-timing: ease-out !default;
 
 // Handle
 $sheet-handle-bg: var(--bs-gray-400, #dee2e6) !default;
@@ -278,9 +281,6 @@ $sheet-border-radius: 1rem 1rem 0 0 !default;
 $sheet-focus-ring-width: 0.25rem !default;
 $sheet-focus-ring-color: rgba(13, 110, 253, 0.25) !default;
 
-// Animations
-$sheet-shake-distance: 10px !default;
-
 // States
 $sheet-disabled-opacity: 0.65 !default;
 ```
@@ -296,7 +296,6 @@ Bootstrap Sheet follows WCAG 2.1 Level AA guidelines:
 - **Keyboard navigation** — Full support for Tab, Shift+Tab, and Escape keys
 - **Inert background** — Uses native `inert` attribute with `aria-hidden` fallback
 - **Screen reader support** — Announces state changes with proper context
-- **Reduced motion** — Respects `prefers-reduced-motion` user preference
 
 ---
 

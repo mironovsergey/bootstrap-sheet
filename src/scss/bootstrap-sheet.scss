@@ -1,5 +1,4 @@
 @use 'variables' as *;
-@use 'mixins' as *;
 
 // CSS Custom Properties for runtime customization
 :root {
@@ -10,8 +9,6 @@
   --bs-sheet-bg: #{$sheet-bg};
   --bs-sheet-backdrop-bg: #{$sheet-backdrop-bg};
   --bs-sheet-backdrop-backdrop-filter: #{$sheet-backdrop-backdrop-filter};
-  --bs-sheet-transition-duration: #{$sheet-transition-duration};
-  --bs-sheet-transition-timing: #{$sheet-transition-timing};
   --bs-sheet-handle-bg: #{$sheet-handle-bg};
   --bs-sheet-handle-hover-bg: #{$sheet-handle-hover-bg};
   --bs-sheet-handle-width: #{$sheet-handle-width};
@@ -29,7 +26,6 @@
   --bs-sheet-border-radius: #{$sheet-border-radius};
   --bs-sheet-focus-ring-width: #{$sheet-focus-ring-width};
   --bs-sheet-focus-ring-color: #{$sheet-focus-ring-color};
-  --bs-sheet-shake-distance: #{$sheet-shake-distance};
   --bs-sheet-disabled-opacity: #{$sheet-disabled-opacity};
 }
 
@@ -64,11 +60,6 @@
     pointer-events: none;
   }
 
-  // Remove transition during dragging
-  &:not(.dragging) {
-    @include sheet-transition(transform, box-shadow);
-  }
-
   &.show,
   &.showing,
   &.dragging {
@@ -80,14 +71,7 @@
     transform: translateY(0);
   }
 
-  &.showing,
-  &.hiding {
-    @include sheet-transition(transform, box-shadow);
-  }
-
-  // Dragging state - no transition for smooth dragging
   &.dragging {
-    transition: none !important;
     user-select: none;
   }
 
@@ -107,7 +91,6 @@
   background-color: var(--bs-sheet-backdrop-bg);
   backdrop-filter: var(--bs-sheet-backdrop-backdrop-filter);
   opacity: 0;
-  @include sheet-transition(opacity);
 
   &.show {
     opacity: 1;
@@ -191,40 +174,4 @@
   font-weight: 500;
   line-height: 1.5;
   margin-bottom: 0;
-}
-
-// Accessibility
-@media (prefers-reduced-motion: reduce) {
-  .sheet,
-  .sheet-backdrop {
-    transition: none !important;
-  }
-}
-
-// Sheet static shake animation
-.sheet-static-shake {
-  animation: sheet-shake 0.6s ease-in-out;
-}
-
-@keyframes sheet-shake {
-  10%,
-  90% {
-    transform: translate3d(0, -1px, 0);
-  }
-
-  20%,
-  80% {
-    transform: translate3d(0, 2px, 0);
-  }
-
-  30%,
-  50%,
-  70% {
-    transform: translate3d(0, -4px, 0);
-  }
-
-  40%,
-  60% {
-    transform: translate3d(0, 4px, 0);
-  }
 }

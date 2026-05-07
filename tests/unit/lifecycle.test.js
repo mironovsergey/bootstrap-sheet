@@ -1,8 +1,6 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
-import { EVENT, CLASS_NAME } from '../../src/js/constants';
-import { createSheet, advanceTimersAndFlush } from '../setup/test-utils';
-
-const TRANSITION_WAIT = BootstrapSheet.Default.animationDuration + 50;
+import { EVENT, CLASS_NAME, SELECTOR } from '../../src/js/constants';
+import { createSheet, advanceTimersAndFlush, TRANSITION_WAIT } from '../setup/test-utils';
 
 describe('BootstrapSheet - Lifecycle', () => {
   describe('show()', () => {
@@ -24,14 +22,14 @@ describe('BootstrapSheet - Lifecycle', () => {
       expect(instance.isTransitioning).toBe(false);
     });
 
-    test('should add show class after reflow', () => {
+    test('should add showing class synchronously on show', () => {
       const sheet = createSheet();
       const instance = new BootstrapSheet(sheet);
 
       instance.show();
 
       expect(sheet).toHaveClass(CLASS_NAME.SHOWING);
-      expect(sheet).toHaveClass(CLASS_NAME.SHOW);
+      expect(sheet).not.toHaveClass(CLASS_NAME.SHOW);
     });
 
     test('should not show if already shown', () => {
@@ -91,9 +89,6 @@ describe('BootstrapSheet - Lifecycle', () => {
 
       const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
       expect(backdrop).toBeInTheDocument();
-
-      // Backdrop opacity should be '1' after show (set in #showBackdrop)
-      expect(backdrop).toHaveStyle({ opacity: '1' });
     });
 
     test('should not create backdrop when backdrop option is false', () => {
@@ -187,17 +182,15 @@ describe('BootstrapSheet - Lifecycle', () => {
       expect(sheet).toHaveClass(CLASS_NAME.HIDING);
     });
 
-    test('should reset transform', () => {
+    test('should reset transform after hide animation', async () => {
       const sheet = createSheet();
       const instance = new BootstrapSheet(sheet);
 
       instance.show();
-      jest.advanceTimersByTime(TRANSITION_WAIT);
-
-      // Manually set transform (simulating drag)
-      sheet.style.transform = 'translateY(50px)';
+      await advanceTimersAndFlush(TRANSITION_WAIT);
 
       instance.hide();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
 
       expect(sheet.style.transform).toBe('');
     });
@@ -228,27 +221,16 @@ describe('BootstrapSheet - Lifecycle', () => {
       expect(hideSpy).not.toHaveBeenCalled();
     });
 
-    test('should remove backdrop', async () => {
+    test('should remove backdrop after hide animation', async () => {
       const sheet = createSheet();
       const instance = new BootstrapSheet(sheet, { backdrop: true });
 
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
-      expect(backdrop).toBeInTheDocument();
+      expect(document.querySelector(`.${CLASS_NAME.BACKDROP}`)).toBeInTheDocument();
 
       instance.hide();
-
-      // Backdrop opacity should be reset to 0
-      expect(backdrop).toHaveStyle({ opacity: '0' });
-
-      // Trigger transitionend manually (jsdom doesn't fire it automatically)
-      const transitionEvent = new Event('transitionend', { bubbles: true });
-      Object.defineProperty(transitionEvent, 'target', { value: sheet, enumerable: true });
-      sheet.dispatchEvent(transitionEvent);
-
-      // Advance timers for cleanup timeout
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
       expect(document.querySelector(`.${CLASS_NAME.BACKDROP}`)).not.toBeInTheDocument();
@@ -287,17 +269,54 @@ describe('BootstrapSheet - Lifecycle', () => {
 
     test('should abort drag if dragging when hide is called', () => {
       const sheet = createSheet({ withDragHandle: true });
+      const instance = new BootstrapSheet(sheet, { gestures: true });
+
+      instance.show();
+      jest.advanceTimersByTime(TRANSITION_WAIT);
+
+      // Simulate drag start via pointer event to properly set isDragging state
+      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      handle.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, clientY: 0, pointerId: 1 }),
+      );
+
+      expect(sheet).toHaveClass(CLASS_NAME.DRAGGING);
+
+      instance.hide();
+
+      expect(sheet).not.toHaveClass(CLASS_NAME.DRAGGING);
+    });
+
+    test('should not throw when hide is called after dispose', () => {
+      const sheet = createSheet();
       const instance = new BootstrapSheet(sheet);
 
       instance.show();
       jest.advanceTimersByTime(TRANSITION_WAIT);
 
-      // Simulate drag start
-      sheet.classList.add(CLASS_NAME.DRAGGING);
+      instance.dispose();
+
+      expect(() => {
+        instance.hide();
+      }).not.toThrow();
+    });
+
+    test('should restore existing aria-hidden attribute after hide', async () => {
+      const sibling = document.createElement('div');
+      sibling.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(sibling);
+
+      const sheet = createSheet();
+      const instance = new BootstrapSheet(sheet);
+
+      instance.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
 
       instance.hide();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      expect(sheet).not.toHaveClass(CLASS_NAME.DRAGGING);
+      // aria-hidden="true" was on the sibling before show - should be restored
+      expect(sibling.getAttribute('aria-hidden')).toBe('true');
     });
   });
 
@@ -352,59 +371,28 @@ describe('BootstrapSheet - Lifecycle', () => {
   });
 
   describe('Transition timing', () => {
-    test('should use default animation duration', async () => {
+    test('shown and hidden events fire asynchronously via spring animation', async () => {
       const sheet = createSheet();
       const instance = new BootstrapSheet(sheet);
 
       const shownSpy = jest.fn();
+      const hiddenSpy = jest.fn();
       sheet.addEventListener(EVENT.SHOWN, shownSpy);
+      sheet.addEventListener(EVENT.HIDDEN, hiddenSpy);
 
       instance.show();
 
-      // Should not be called immediately
+      // Not called synchronously
       expect(shownSpy).not.toHaveBeenCalled();
 
-      // Should not be called before duration
-      jest.advanceTimersByTime(200);
-      expect(shownSpy).not.toHaveBeenCalled();
+      await advanceTimersAndFlush(50);
+      expect(shownSpy).toHaveBeenCalledTimes(1);
 
-      // Should be called after duration + buffer
-      await advanceTimersAndFlush(200);
-      expect(shownSpy).toHaveBeenCalled();
-    });
+      instance.hide();
+      expect(hiddenSpy).not.toHaveBeenCalled();
 
-    test('should use custom animation duration', async () => {
-      const sheet = createSheet();
-      const instance = new BootstrapSheet(sheet, { animationDuration: 500 });
-
-      const shownSpy = jest.fn();
-      sheet.addEventListener(EVENT.SHOWN, shownSpy);
-
-      instance.show();
-
-      // Should not be called before custom duration
-      jest.advanceTimersByTime(400);
-      expect(shownSpy).not.toHaveBeenCalled();
-
-      // Should be called after custom duration + buffer
-      await advanceTimersAndFlush(200);
-      expect(shownSpy).toHaveBeenCalled();
-    });
-
-    test('should respect animation duration from data attribute', async () => {
-      const sheet = createSheet({ dataAttributes: { 'animation-duration': '600' } });
-      const instance = new BootstrapSheet(sheet);
-
-      const shownSpy = jest.fn();
-      sheet.addEventListener(EVENT.SHOWN, shownSpy);
-
-      instance.show();
-
-      jest.advanceTimersByTime(500);
-      expect(shownSpy).not.toHaveBeenCalled();
-
-      await advanceTimersAndFlush(200);
-      expect(shownSpy).toHaveBeenCalled();
+      await advanceTimersAndFlush(50);
+      expect(hiddenSpy).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -481,9 +469,9 @@ describe('BootstrapSheet - Lifecycle', () => {
 
       instance.show();
 
-      // During transition
+      // During transition: showing added, show deferred until spring settles
       expect(sheet).toHaveClass(CLASS_NAME.SHOWING);
-      expect(sheet).toHaveClass(CLASS_NAME.SHOW);
+      expect(sheet).not.toHaveClass(CLASS_NAME.SHOW);
 
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
@@ -515,13 +503,17 @@ describe('BootstrapSheet - Lifecycle', () => {
     });
 
     test('should remove dragging class on hide', async () => {
-      const sheet = createSheet();
-      const instance = new BootstrapSheet(sheet);
+      const sheet = createSheet({ withDragHandle: true });
+      const instance = new BootstrapSheet(sheet, { gestures: true });
 
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      sheet.classList.add(CLASS_NAME.DRAGGING);
+      // Simulate drag start via pointer event to properly set isDragging state
+      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      handle.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, clientY: 0, pointerId: 1 }),
+      );
       expect(sheet).toHaveClass(CLASS_NAME.DRAGGING);
 
       instance.hide();

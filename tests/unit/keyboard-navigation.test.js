@@ -1,8 +1,6 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { CLASS_NAME, SELECTOR } from '../../src/js/constants';
-import { createSheet, advanceTimersAndFlush } from '../setup/test-utils';
-
-const TRANSITION_WAIT = BootstrapSheet.Default.animationDuration + 50;
+import { createSheet, advanceTimersAndFlush, TRANSITION_WAIT } from '../setup/test-utils';
 
 describe('BootstrapSheet - Keyboard Navigation', () => {
   describe('ESC key behavior', () => {
@@ -52,6 +50,9 @@ describe('BootstrapSheet - Keyboard Navigation', () => {
         backdrop: 'static',
       });
 
+      const animateSpy = jest.fn();
+      sheet.animate = animateSpy;
+
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
@@ -61,12 +62,7 @@ describe('BootstrapSheet - Keyboard Navigation', () => {
       });
       document.dispatchEvent(escapeEvent);
 
-      expect(sheet).toHaveClass(CLASS_NAME.STATIC_SHAKE);
-      expect(instance.isShown).toBe(true);
-
-      await advanceTimersAndFlush(TRANSITION_WAIT);
-
-      expect(sheet).not.toHaveClass(CLASS_NAME.STATIC_SHAKE);
+      expect(animateSpy).toHaveBeenCalled();
       expect(instance.isShown).toBe(true);
     });
 
@@ -407,6 +403,9 @@ describe('BootstrapSheet - Keyboard Navigation', () => {
         backdrop: 'static',
       });
 
+      const animateSpy = jest.fn();
+      sheet.animate = animateSpy;
+
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
@@ -420,7 +419,7 @@ describe('BootstrapSheet - Keyboard Navigation', () => {
       });
       document.dispatchEvent(escapeEvent);
 
-      expect(sheet).toHaveClass(CLASS_NAME.STATIC_SHAKE);
+      expect(animateSpy).toHaveBeenCalled();
       expect(instance.isShown).toBe(true);
       expect(backdrop).toBeInTheDocument();
     });
@@ -493,12 +492,14 @@ describe('BootstrapSheet - Keyboard Navigation', () => {
         backdrop: 'static',
       });
 
+      const animateSpy = jest.fn();
+      sheet.animate = animateSpy;
+
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
       const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
 
-      // Start dragging
       const pointerDown = new PointerEvent('pointerdown', {
         bubbles: true,
         clientY: 0,
@@ -508,20 +509,14 @@ describe('BootstrapSheet - Keyboard Navigation', () => {
 
       expect(sheet).toHaveClass(CLASS_NAME.DRAGGING);
 
-      // Press ESC while dragging
       const escapeEvent = new KeyboardEvent('keydown', {
         key: 'Escape',
         bubbles: true,
       });
       document.dispatchEvent(escapeEvent);
 
-      // Shake animation should be added
-      expect(sheet).toHaveClass(CLASS_NAME.STATIC_SHAKE);
+      expect(animateSpy).toHaveBeenCalled();
       expect(instance.isShown).toBe(true);
-
-      // Note: DRAGGING class might still be present immediately after ESC
-      // because shake animation is added, but drag is effectively aborted
-      // The important part is that sheet is NOT closed and shake is shown
     });
   });
 
@@ -693,7 +688,7 @@ describe('BootstrapSheet - Keyboard Navigation', () => {
       expect(instance.isShown).toBe(false);
     });
 
-    test('should not leak memory with repeated show/hide cycles', async () => {
+    test('should work correctly after repeated show/hide cycles', async () => {
       const sheet = createSheet();
       const instance = new BootstrapSheet(sheet, { keyboard: true });
 

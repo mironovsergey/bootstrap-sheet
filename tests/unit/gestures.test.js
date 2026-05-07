@@ -1,8 +1,12 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { CLASS_NAME, SELECTOR } from '../../src/js/constants';
-import { createSheet, getTranslateY, advanceTimersAndFlush } from '../setup/test-utils';
-
-const TRANSITION_WAIT = BootstrapSheet.Default.animationDuration + 50;
+import { VelocityTracker } from '../../src/js/utils';
+import {
+  createSheet,
+  getTranslateY,
+  advanceTimersAndFlush,
+  TRANSITION_WAIT,
+} from '../setup/test-utils';
 
 describe('BootstrapSheet - Gestures', () => {
   describe('Gesture handlers initialization', () => {
@@ -138,7 +142,7 @@ describe('BootstrapSheet - Gestures', () => {
       expect(sheet).not.toHaveClass(CLASS_NAME.DRAGGING);
     });
 
-    test('should remove backdrop transition during drag', () => {
+    test('backdrop has no inline transition during drag', () => {
       const sheet = createSheet({ withDragHandle: true });
       const instance = new BootstrapSheet(sheet, { backdrop: true, gestures: true });
 
@@ -149,18 +153,14 @@ describe('BootstrapSheet - Gestures', () => {
       expect(backdrop).toBeInTheDocument();
 
       const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      handle.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, clientY: 0, pointerId: 1 }),
+      );
 
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
-
-      expect(backdrop.style.transition).toBe('none');
+      expect(backdrop.style.transition).toBe('');
     });
 
-    test('should restore backdrop transition on pointerup', () => {
+    test('backdrop has no inline transition before and after drag', () => {
       const sheet = createSheet({ withDragHandle: true });
       const instance = new BootstrapSheet(sheet, { backdrop: true, gestures: true });
 
@@ -170,21 +170,16 @@ describe('BootstrapSheet - Gestures', () => {
       const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
       const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
 
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
+      expect(backdrop.style.transition).toBe('');
 
-      const pointerUp = new PointerEvent('pointerup', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerUp);
+      handle.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, clientY: 0, pointerId: 1 }),
+      );
+      document.dispatchEvent(
+        new PointerEvent('pointerup', { bubbles: true, clientY: 0, pointerId: 1 }),
+      );
 
-      expect(backdrop.style.transition).toBe('opacity 300ms');
+      expect(backdrop.style.transition).toBe('');
     });
   });
 
@@ -222,6 +217,29 @@ describe('BootstrapSheet - Gestures', () => {
 
       const translateY = getTranslateY(sheet);
       expect(translateY).toBeGreaterThan(0);
+    });
+
+    test('should not move when pointermove at same position as pointerdown', () => {
+      const sheet = createSheet({ withDragHandle: true });
+      const instance = new BootstrapSheet(sheet, { gestures: true });
+
+      Object.defineProperty(sheet, 'offsetHeight', { configurable: true, value: 400 });
+
+      instance.show();
+      jest.advanceTimersByTime(TRANSITION_WAIT);
+
+      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+
+      // pointerdown and pointermove at same clientY → deltaY = 0
+      handle.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, clientY: 50, pointerId: 1 }),
+      );
+      document.dispatchEvent(
+        new PointerEvent('pointermove', { bubbles: true, clientY: 50, pointerId: 1 }),
+      );
+      jest.advanceTimersByTime(16);
+
+      expect(getTranslateY(sheet)).toBe(0);
     });
 
     test('should not update position if not dragging', () => {
@@ -315,7 +333,6 @@ describe('BootstrapSheet - Gestures', () => {
       const sheet = createSheet({ withDragHandle: true });
       const instance = new BootstrapSheet(sheet, {
         gestures: true,
-        dragResistanceUp: 0.75,
       });
 
       Object.defineProperty(sheet, 'offsetHeight', {
@@ -351,11 +368,10 @@ describe('BootstrapSheet - Gestures', () => {
       expect(Math.abs(translateY)).toBeLessThan(50);
     });
 
-    test('should apply less resistance when dragging down', () => {
+    test('should track finger 1:1 when dragging down', () => {
       const sheet = createSheet({ withDragHandle: true });
       const instance = new BootstrapSheet(sheet, {
         gestures: true,
-        dragResistanceDown: 0.01,
       });
 
       Object.defineProperty(sheet, 'offsetHeight', {
@@ -393,10 +409,7 @@ describe('BootstrapSheet - Gestures', () => {
   describe('Drag end behavior', () => {
     test('should snap back to initial position on small drag down', async () => {
       const sheet = createSheet({ withDragHandle: true });
-      const instance = new BootstrapSheet(sheet, {
-        gestures: true,
-        swipeThreshold: 100,
-      });
+      const instance = new BootstrapSheet(sheet, { gestures: true });
 
       Object.defineProperty(sheet, 'offsetHeight', {
         configurable: true,
@@ -408,45 +421,37 @@ describe('BootstrapSheet - Gestures', () => {
 
       const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
 
-      // Small drag
-      const pointerDown = new PointerEvent('pointerdown', {
+      // Create all events upfront at the same real timestamp to prevent velocity drift:
+      // jsdom sets event.timeStamp from performance.now() at creation time, so creating
+      // events before any dispatch keeps their timestamps nearly identical, giving
+      // VelocityTracker dt≈0 → velocity=0 → projectedY=30 < 200 → snap-back (not dismiss).
+      const downEvent = new PointerEvent('pointerdown', {
         bubbles: true,
         clientY: 0,
         pointerId: 1,
       });
-      handle.dispatchEvent(pointerDown);
-
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 30, // Less than threshold
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
-
-      jest.advanceTimersByTime(16);
-
-      const pointerUp = new PointerEvent('pointerup', {
+      const moveEvent = new PointerEvent('pointermove', {
         bubbles: true,
         clientY: 30,
         pointerId: 1,
       });
-      document.dispatchEvent(pointerUp);
+      const upEvent = new PointerEvent('pointerup', { bubbles: true, clientY: 30, pointerId: 1 });
 
-      // Wait for animation
-      await advanceTimersAndFlush(TRANSITION_WAIT);
+      handle.dispatchEvent(downEvent);
+      document.dispatchEvent(moveEvent);
+      jest.advanceTimersByTime(16);
+      document.dispatchEvent(upEvent);
 
-      // Should snap back to 0
-      const translateY = getTranslateY(sheet);
-      expect(translateY).toBe(0);
+      // Spring takes ~600ms to settle - advance enough to ensure it snaps to exact 0
+      await advanceTimersAndFlush(2000);
+
+      expect(getTranslateY(sheet)).toBe(0);
       expect(instance.isShown).toBe(true);
     });
 
     test('should close on large drag down', async () => {
       const sheet = createSheet({ withDragHandle: true });
-      const instance = new BootstrapSheet(sheet, {
-        gestures: true,
-        swipeThreshold: 50,
-      });
+      const instance = new BootstrapSheet(sheet, { gestures: true });
 
       Object.defineProperty(sheet, 'offsetHeight', {
         configurable: true,
@@ -458,32 +463,20 @@ describe('BootstrapSheet - Gestures', () => {
 
       const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
 
-      // Large drag
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
-
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 150, // More than threshold
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
-
+      // Drag past 50% midpoint (250px > 200px) - new engine dismisses via inertia projection
+      handle.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, clientY: 0, pointerId: 1 }),
+      );
+      document.dispatchEvent(
+        new PointerEvent('pointermove', { bubbles: true, clientY: 250, pointerId: 1 }),
+      );
       jest.advanceTimersByTime(16);
+      document.dispatchEvent(
+        new PointerEvent('pointerup', { bubbles: true, clientY: 250, pointerId: 1 }),
+      );
 
-      const pointerUp = new PointerEvent('pointerup', {
-        bubbles: true,
-        clientY: 150,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerUp);
-
-      // Wait for animation + hide
-      await advanceTimersAndFlush(TRANSITION_WAIT * 2);
+      // Spring animates to sheetHeight, then triggers hide() - wait enough for spring + transition
+      await advanceTimersAndFlush(2000);
 
       expect(instance.isShown).toBe(false);
     });
@@ -502,45 +495,27 @@ describe('BootstrapSheet - Gestures', () => {
 
       const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
 
-      // Drag up
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 100,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
-
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 0, // Move up
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
-
+      handle.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, clientY: 100, pointerId: 1 }),
+      );
+      document.dispatchEvent(
+        new PointerEvent('pointermove', { bubbles: true, clientY: 0, pointerId: 1 }),
+      );
       jest.advanceTimersByTime(16);
+      document.dispatchEvent(
+        new PointerEvent('pointerup', { bubbles: true, clientY: 0, pointerId: 1 }),
+      );
 
-      const pointerUp = new PointerEvent('pointerup', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerUp);
+      // Spring takes ~600ms to settle - advance enough to ensure it snaps to exact 0
+      await advanceTimersAndFlush(2000);
 
-      await advanceTimersAndFlush(TRANSITION_WAIT);
-
-      // Should snap back
-      const translateY = getTranslateY(sheet);
-      expect(translateY).toBe(0);
+      expect(getTranslateY(sheet)).toBe(0);
       expect(instance.isShown).toBe(true);
     });
 
-    test('should close on high velocity drag', async () => {
+    test('should close when projected position exceeds midpoint', async () => {
       const sheet = createSheet({ withDragHandle: true });
-      const instance = new BootstrapSheet(sheet, {
-        gestures: true,
-        velocityThreshold: 0.5,
-        minCloseDistance: 30,
-      });
+      const instance = new BootstrapSheet(sheet, { gestures: true });
 
       Object.defineProperty(sheet, 'offsetHeight', {
         configurable: true,
@@ -552,45 +527,33 @@ describe('BootstrapSheet - Gestures', () => {
 
       const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
 
-      // Fast swipe
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
+      // Inject velocity 2 px/ms (2000 px/s) via spy so the projection formula is exercised.
+      // projectDisplacement(2000, 0.998) ≈ 998px → projectedY = 50 + 998 = 1048 > 200 → dismiss.
+      const getVelocitySpy = jest
+        .spyOn(VelocityTracker.prototype, 'getVelocity')
+        .mockReturnValue(2);
 
-      // Multiple quick moves to simulate velocity
-      for (let i = 1; i <= 5; i++) {
-        const pointerMove = new PointerEvent('pointermove', {
-          bubbles: true,
-          clientY: i * 20,
-          pointerId: 1,
-        });
-        document.dispatchEvent(pointerMove);
-        jest.advanceTimersByTime(10); // Very short time = high velocity
-      }
+      handle.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, clientY: 0, pointerId: 1 }),
+      );
+      document.dispatchEvent(
+        new PointerEvent('pointermove', { bubbles: true, clientY: 50, pointerId: 1 }),
+      );
+      jest.advanceTimersByTime(16);
+      document.dispatchEvent(
+        new PointerEvent('pointerup', { bubbles: true, clientY: 50, pointerId: 1 }),
+      );
 
-      const pointerUp = new PointerEvent('pointerup', {
-        bubbles: true,
-        clientY: 100,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerUp);
+      getVelocitySpy.mockRestore();
 
-      await advanceTimersAndFlush(TRANSITION_WAIT * 2);
+      await advanceTimersAndFlush(2000);
 
-      // Should close due to high velocity
       expect(instance.isShown).toBe(false);
     });
 
-    test('should respect closeThresholdRatio', async () => {
+    test('should close when drag exceeds 50% of sheet height', async () => {
       const sheet = createSheet({ withDragHandle: true });
-      const instance = new BootstrapSheet(sheet, {
-        gestures: true,
-        closeThresholdRatio: 0.5, // 50% of height
-        swipeThreshold: 0,
-      });
+      const instance = new BootstrapSheet(sheet, { gestures: true });
 
       Object.defineProperty(sheet, 'offsetHeight', {
         configurable: true,
@@ -602,33 +565,21 @@ describe('BootstrapSheet - Gestures', () => {
 
       const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
 
-      // Drag 51% of height
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
-
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 210, // 52.5% of 400px
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
-
+      // Drag 210px (52.5% of 400px) - exceeds 50% midpoint
+      handle.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, clientY: 0, pointerId: 1 }),
+      );
+      document.dispatchEvent(
+        new PointerEvent('pointermove', { bubbles: true, clientY: 210, pointerId: 1 }),
+      );
       jest.advanceTimersByTime(16);
+      document.dispatchEvent(
+        new PointerEvent('pointerup', { bubbles: true, clientY: 210, pointerId: 1 }),
+      );
 
-      const pointerUp = new PointerEvent('pointerup', {
-        bubbles: true,
-        clientY: 210,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerUp);
+      // Spring animates to sheetHeight, then triggers hide() - wait enough for spring + transition
+      await advanceTimersAndFlush(2000);
 
-      await advanceTimersAndFlush(TRANSITION_WAIT * 2);
-
-      // Should close
       expect(instance.isShown).toBe(false);
     });
   });
@@ -729,15 +680,41 @@ describe('BootstrapSheet - Gestures', () => {
       // Restore console.warn
       consoleWarnSpy.mockRestore();
     });
+
+    test('should handle release pointer capture errors gracefully', () => {
+      const sheet = createSheet({ withDragHandle: true });
+      const instance = new BootstrapSheet(sheet, { gestures: true });
+
+      instance.show();
+      jest.advanceTimersByTime(TRANSITION_WAIT);
+
+      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      handle.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, clientY: 0, pointerId: 1 }),
+      );
+
+      handle.releasePointerCapture = jest.fn(() => {
+        throw new Error('Release failed');
+      });
+
+      const pointerUp = new PointerEvent('pointerup', { bubbles: true, clientY: 0, pointerId: 1 });
+      Object.defineProperty(pointerUp, 'target', { value: handle, writable: false });
+
+      expect(() => {
+        document.dispatchEvent(pointerUp);
+      }).not.toThrow();
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith('Failed to release pointer:', expect.any(Error));
+      consoleWarnSpy.mockRestore();
+    });
   });
 
   describe('Animation and timing', () => {
-    test('should use easeOutCubic for snap back animation', async () => {
+    test('should decelerate during snap back animation', async () => {
       const sheet = createSheet({ withDragHandle: true });
-      const instance = new BootstrapSheet(sheet, {
-        gestures: true,
-        animationDuration: 300,
-      });
+      const instance = new BootstrapSheet(sheet, { gestures: true });
 
       Object.defineProperty(sheet, 'offsetHeight', {
         configurable: true,
@@ -749,56 +726,43 @@ describe('BootstrapSheet - Gestures', () => {
 
       const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
 
-      const pointerDown = new PointerEvent('pointerdown', {
+      // Events upfront: keeps timestamps nearly identical → velocity≈0 → snap-back (not dismiss)
+      const downEvent = new PointerEvent('pointerdown', {
         bubbles: true,
         clientY: 0,
         pointerId: 1,
       });
-      handle.dispatchEvent(pointerDown);
-
-      const pointerMove = new PointerEvent('pointermove', {
+      const moveEvent = new PointerEvent('pointermove', {
         bubbles: true,
         clientY: 50,
         pointerId: 1,
       });
-      document.dispatchEvent(pointerMove);
+      const upEvent = new PointerEvent('pointerup', { bubbles: true, clientY: 50, pointerId: 1 });
 
+      handle.dispatchEvent(downEvent);
+      document.dispatchEvent(moveEvent);
       jest.advanceTimersByTime(16);
+      document.dispatchEvent(upEvent);
 
-      const pointerUp = new PointerEvent('pointerup', {
-        bubbles: true,
-        clientY: 50,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerUp);
-
-      // Check position at different points in animation
-      // This tests the easing function indirectly
-
-      jest.advanceTimersByTime(100); // 1/3 of duration
+      jest.advanceTimersByTime(100);
       const translateY1 = getTranslateY(sheet);
 
-      jest.advanceTimersByTime(100); // 2/3 of duration
+      jest.advanceTimersByTime(100);
       const translateY2 = getTranslateY(sheet);
 
-      jest.advanceTimersByTime(100); // Complete
+      jest.advanceTimersByTime(100);
       const translateY3 = getTranslateY(sheet);
 
-      // With easeOutCubic, movement should slow down
-      // More movement in first third than last third
+      // Spring physics decelerates: more movement in first 100ms than last 100ms
       const firstThirdMovement = Math.abs(translateY1 - 50);
       const lastThirdMovement = Math.abs(translateY3 - translateY2);
 
       expect(firstThirdMovement).toBeGreaterThan(lastThirdMovement);
     });
 
-    test('should respect custom animation duration', async () => {
+    test('should complete spring snap-back animation', async () => {
       const sheet = createSheet({ withDragHandle: true });
-      const customDuration = 500;
-      const instance = new BootstrapSheet(sheet, {
-        gestures: true,
-        animationDuration: customDuration,
-      });
+      const instance = new BootstrapSheet(sheet, { gestures: true });
 
       Object.defineProperty(sheet, 'offsetHeight', {
         configurable: true,
@@ -806,39 +770,33 @@ describe('BootstrapSheet - Gestures', () => {
       });
 
       instance.show();
-      await advanceTimersAndFlush(customDuration + 50);
+      await advanceTimersAndFlush(TRANSITION_WAIT);
 
       const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
 
+      // Create all events upfront to prevent real-time timestamp drift causing false dismiss
       const pointerDown = new PointerEvent('pointerdown', {
         bubbles: true,
         clientY: 0,
         pointerId: 1,
       });
-      handle.dispatchEvent(pointerDown);
-
       const pointerMove = new PointerEvent('pointermove', {
         bubbles: true,
         clientY: 30,
         pointerId: 1,
       });
+      const pointerUp = new PointerEvent('pointerup', { bubbles: true, clientY: 30, pointerId: 1 });
+
+      handle.dispatchEvent(pointerDown);
       document.dispatchEvent(pointerMove);
-
       jest.advanceTimersByTime(16);
-
-      const pointerUp = new PointerEvent('pointerup', {
-        bubbles: true,
-        clientY: 30,
-        pointerId: 1,
-      });
       document.dispatchEvent(pointerUp);
 
-      // Animation should not complete before custom duration
-      jest.advanceTimersByTime(customDuration - 100);
+      // Spring animation is not instant - position should still be mid-flight right after release
       expect(getTranslateY(sheet)).not.toBe(0);
 
-      // Should complete after custom duration
-      jest.advanceTimersByTime(200);
+      // Spring settles within 2 seconds (default response=0.4s, damping=0.8)
+      await advanceTimersAndFlush(2000);
       expect(getTranslateY(sheet)).toBe(0);
     });
   });
