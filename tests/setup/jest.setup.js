@@ -30,6 +30,17 @@ global.IntersectionObserver = class IntersectionObserver {
 global.PointerEvent = class PointerEvent extends MouseEvent {
   constructor(type, params = {}) {
     super(type, params);
+    // jsdom sets timeStamp via its own internal performance reference, which may
+    // bypass Jest's faked clock. Override it here so all events created in the
+    // same synchronous block get an identical fake timestamp, preventing the
+    // VelocityTracker from computing a huge velocity from a sub-millisecond dt
+    // and triggering a spurious dismiss.
+    Object.defineProperty(this, 'timeStamp', {
+      value: performance.now(),
+      writable: false,
+      enumerable: true,
+      configurable: true,
+    });
     this.pointerId = params.pointerId || 0;
     this.width = params.width || 0;
     this.height = params.height || 0;
