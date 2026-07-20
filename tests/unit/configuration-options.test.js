@@ -9,20 +9,6 @@ describe('BootstrapSheet - Configuration Options', () => {
     });
   });
 
-  describe('Deprecated options', () => {
-    test('should warn when deprecated option is passed', () => {
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-      const sheet = createSheet();
-
-      new BootstrapSheet(sheet, { swipeThreshold: 80 });
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[sheet] Option "swipeThreshold" is deprecated'),
-      );
-      consoleWarnSpy.mockRestore();
-    });
-  });
-
   describe('Boolean options', () => {
     test('backdrop option should control backdrop creation', async () => {
       const sheet1 = createSheet();

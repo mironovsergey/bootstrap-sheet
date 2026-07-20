@@ -32,7 +32,6 @@ Touch-friendly bottom sheet component for Bootstrap 5 - supports physics-based s
   - [Options](#options)
     - [UI Options](#ui-options)
     - [Gesture Options](#gesture-options)
-    - [Deprecated Options](#deprecated-options)
   - [Methods](#methods)
   - [Properties](#properties)
   - [Events](#events)
@@ -173,14 +172,6 @@ Dismissal is driven by inertia projection: when the user releases the sheet, its
 | `gestures`           | boolean | `true`  | Enable/disable swipe gestures.                                                                                         |
 | `springDampingRatio` | number  | `0.8`   | Damping ratio for the spring animation. `1.0` = no bounce (critically damped). Values below `1.0` add a subtle bounce. |
 | `springResponse`     | number  | `0.4`   | Response time of the spring in seconds. Lower values make the spring faster and snappier.                              |
-
-### Deprecated Options
-
-The following options have no effect if passed (a console warning is shown):
-
-`animationDuration`, `swipeThreshold`, `velocityThreshold`, `minCloseDistance`, `closeThresholdRatio`, `projectionTime`, `dragResistanceUp`, `dragResistanceDown`
-
-Use `springDampingRatio` and `springResponse` to tune gesture feel instead.
 
 ---
 

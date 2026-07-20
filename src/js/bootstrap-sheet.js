@@ -6,7 +6,6 @@ import {
   FOCUSABLE_SELECTOR,
   Default,
   DefaultType,
-  DEPRECATED_OPTIONS,
   RUBBER_BAND_COEFFICIENT,
   DECELERATION_RATE,
 } from './constants';
@@ -149,7 +148,6 @@ class BootstrapSheet {
 
     validateConfigTypes(NAME, this.#config, DefaultType);
 
-    this.#warnDeprecatedOptions(dataConfig, config);
     this.#setupAccessibility();
 
     INSTANCES.set(this.#element, this);
@@ -304,26 +302,6 @@ class BootstrapSheet {
     this.#element.setAttribute('role', 'dialog');
     this.#element.setAttribute('aria-modal', 'true');
     this.#element.setAttribute('tabindex', '-1');
-  }
-
-  /**
-   * Emit console warnings for any deprecated options explicitly provided by the user.
-   * @param {Object} dataConfig - Parsed data attributes from the element
-   * @param {Object} config - Configuration object passed to the constructor
-   * @returns {void}
-   * @private
-   */
-  #warnDeprecatedOptions(dataConfig, config) {
-    for (const [option, message] of Object.entries(DEPRECATED_OPTIONS)) {
-      const isInDataAttrs = Object.prototype.hasOwnProperty.call(dataConfig, option);
-      const isInConfig = config != null && Object.prototype.hasOwnProperty.call(config, option);
-
-      if (isInDataAttrs || isInConfig) {
-        console.warn(
-          `[${NAME}] Option "${option}" is deprecated and will be removed in v0.3.0. ${message}.`,
-        );
-      }
-    }
   }
 
   // ==================== Private Methods: Show ====================
