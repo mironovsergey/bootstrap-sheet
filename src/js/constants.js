@@ -109,58 +109,6 @@ export const Default = {
   /** Enable/disable swipe gestures */
   gestures: true,
 
-  /**
-   * Minimum swipe distance in pixels to trigger close
-   * @deprecated since 0.2.0
-   */
-  swipeThreshold: 50,
-
-  /**
-   * Minimum velocity (px/ms) to trigger close
-   * @deprecated since 0.2.0
-   */
-  velocityThreshold: 0.5,
-
-  /**
-   * Minimum distance for velocity-based close
-   * @deprecated since 0.2.0
-   */
-  minCloseDistance: 50,
-
-  /**
-   * Ratio of sheet height to trigger close (0-1)
-   * @deprecated since 0.2.0
-   */
-  closeThresholdRatio: 0.3,
-
-  // ==================== Animation ====================
-
-  /**
-   * CSS transition duration in milliseconds
-   * @deprecated since 0.2.0
-   */
-  animationDuration: 300,
-
-  /**
-   * Time to project velocity in milliseconds
-   * @deprecated since 0.2.0
-   */
-  projectionTime: 200,
-
-  // ==================== Drag resistance ====================
-
-  /**
-   * Resistance when dragging up (0-1, higher = more resistance)
-   * @deprecated since 0.2.0
-   */
-  dragResistanceUp: 0.75,
-
-  /**
-   * Resistance when dragging down (0-1, higher = more resistance)
-   * @deprecated since 0.2.0
-   */
-  dragResistanceDown: 0.01,
-
   // ==================== Spring animation ====================
 
   /**
@@ -189,33 +137,6 @@ export const DefaultType = {
   keyboard: 'boolean',
   focus: 'boolean',
   gestures: 'boolean',
-  swipeThreshold: 'number',
-  velocityThreshold: 'number',
-  minCloseDistance: 'number',
-  closeThresholdRatio: 'number',
-  animationDuration: 'number',
-  projectionTime: 'number',
-  dragResistanceUp: 'number',
-  dragResistanceDown: 'number',
   springDampingRatio: 'number',
   springResponse: 'number',
-};
-
-export const DEPRECATED_OPTIONS = {
-  swipeThreshold:
-    'Gesture dismiss is now driven by inertia projection; use springDampingRatio and springResponse to tune snap-back behavior',
-  velocityThreshold:
-    'Gesture dismiss is now driven by inertia projection; use springDampingRatio and springResponse to tune snap-back behavior',
-  minCloseDistance:
-    'Gesture dismiss is now driven by inertia projection; use springDampingRatio and springResponse to tune snap-back behavior',
-  closeThresholdRatio:
-    'Gesture dismiss is now driven by inertia projection; use springDampingRatio and springResponse to tune snap-back behavior',
-  animationDuration:
-    'Animations are now driven by the spring engine; use springResponse and springDampingRatio to control animation timing',
-  projectionTime:
-    'Gesture dismiss is now driven by inertia projection; use springDampingRatio and springResponse to tune snap-back behavior',
-  dragResistanceUp:
-    "Drag resistance now uses Apple's rubber band formula automatically; use springDampingRatio and springResponse to tune animation feel",
-  dragResistanceDown:
-    "Drag resistance now uses Apple's rubber band formula automatically; use springDampingRatio and springResponse to tune animation feel",
 };
