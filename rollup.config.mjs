@@ -24,10 +24,11 @@ export default [
     },
     external: ['bootstrap'],
     plugins: [
-      nodeResolve(),
+      nodeResolve({ extensions: ['.js', '.ts'] }),
       babel({
         babelHelpers: 'bundled',
-        presets: ['@babel/preset-env'],
+        presets: ['@babel/preset-env', '@babel/preset-typescript'],
+        extensions: ['.js', '.ts'],
       }),
     ],
   },
@@ -45,10 +46,11 @@ export default [
     },
     external: ['bootstrap'],
     plugins: [
-      nodeResolve(),
+      nodeResolve({ extensions: ['.js', '.ts'] }),
       babel({
         babelHelpers: 'bundled',
-        presets: ['@babel/preset-env'],
+        presets: ['@babel/preset-env', '@babel/preset-typescript'],
+        extensions: ['.js', '.ts'],
       }),
       terser(),
     ],
@@ -63,10 +65,11 @@ export default [
     },
     external: ['bootstrap'],
     plugins: [
-      nodeResolve(),
+      nodeResolve({ extensions: ['.js', '.ts'] }),
       babel({
         babelHelpers: 'bundled',
-        presets: ['@babel/preset-env'],
+        presets: ['@babel/preset-env', '@babel/preset-typescript'],
+        extensions: ['.js', '.ts'],
       }),
     ],
   },
