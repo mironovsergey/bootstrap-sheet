@@ -1,21 +1,7 @@
 import { solveSpring, isSpringSettled } from './utils';
+import type { SpringParams, SpringState } from './utils';
 
-/**
- * Physical spring constants (see `springParameters` in utils)
- */
-export interface SpringParams {
-  stiffness: number;
-  damping: number;
-  mass: number;
-}
-
-/**
- * Current spring state
- */
-interface SpringState {
-  position: number;
-  velocity: number;
-}
+export type { SpringParams } from './utils';
 
 /**
  * Options for a single spring animation run

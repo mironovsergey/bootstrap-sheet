@@ -83,6 +83,7 @@ jobs:
           test -f dist/js/bootstrap-sheet.esm.js
           test -f dist/css/bootstrap-sheet.css
           test -f dist/css/bootstrap-sheet.min.css
+          test -f dist/types/bootstrap-sheet.d.ts
 
       - name: Upload build artifacts
         if: matrix.node == 22

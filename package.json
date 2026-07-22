@@ -7,7 +7,7 @@
   "unpkg": "dist/js/bootstrap-sheet.min.js",
   "style": "dist/css/bootstrap-sheet.css",
   "sass": "src/scss/bootstrap-sheet.scss",
-  "types": "src/types/index.d.ts",
+  "types": "dist/types/bootstrap-sheet.d.ts",
   "type": "module",
   "files": [
     "dist/",
@@ -17,7 +17,7 @@
   ],
   "exports": {
     ".": {
-      "types": "./src/types/index.d.ts",
+      "types": "./dist/types/bootstrap-sheet.d.ts",
       "import": "./dist/js/bootstrap-sheet.esm.js",
       "require": "./dist/js/bootstrap-sheet.js",
       "default": "./dist/js/bootstrap-sheet.js"
@@ -34,8 +34,9 @@
     "dev:js": "rollup -c -w",
     "dev:css": "sass src/scss/bootstrap-sheet.scss dist/css/bootstrap-sheet.css --watch",
     "dev:server": "ln -sfn ../dist docs/dist && http-server . -c-1 -o /docs/",
-    "build": "npm run clean && npm run build:js && npm run build:css",
+    "build": "npm run clean && npm run build:js && npm run build:css && npm run build:types",
     "build:js": "rollup -c",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:css": "npm run build:css:main && npm run build:css:min",
     "build:css:main": "sass src/scss/bootstrap-sheet.scss dist/css/bootstrap-sheet.css --style=expanded",
     "build:css:min": "sass src/scss/bootstrap-sheet.scss dist/css/bootstrap-sheet.min.css --style=compressed",

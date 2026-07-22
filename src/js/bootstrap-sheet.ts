@@ -1,4 +1,5 @@
 import { NAME, EVENT, CLASS_NAME, SELECTOR, Default, DefaultType } from './constants';
+import type { BootstrapSheetOptions, ResolvedSheetOptions } from './constants';
 
 import {
   resolveElement,
@@ -16,7 +17,17 @@ import FocusTrap, { InertManager } from './focus-trap';
 import SpringAnimator from './spring-animator';
 import DragController from './drag-controller';
 
-const INSTANCES = new WeakMap();
+export type { BootstrapSheetOptions } from './constants';
+
+const INSTANCES = new WeakMap<HTMLElement, BootstrapSheet>();
+
+/**
+ * Bound event handlers kept for removal
+ */
+interface SheetHandlers {
+  escape: ((event: KeyboardEvent) => void) | null;
+  dismiss: (() => void) | null;
+}
 
 /**
  * @class BootstrapSheet - A touch-friendly bottom sheet component for Bootstrap 5
@@ -27,145 +38,157 @@ const INSTANCES = new WeakMap();
 class BootstrapSheet {
   // ==================== Core elements ====================
 
-  /* @type {HTMLElement} Sheet element */
-  #element;
+  /** Sheet element */
+  #element: HTMLElement;
 
-  /* @type {Object} Configuration object */
-  #config;
+  /** Resolved configuration object */
+  #config: ResolvedSheetOptions;
 
-  /* @type {Backdrop|null} Backdrop helper instance */
-  #backdrop = null;
+  /** Backdrop helper instance */
+  #backdrop: Backdrop | null = null;
 
-  /* @type {ScrollBarHelper} Body scrollbar compensation helper */
+  /** Body scrollbar compensation helper */
   #scrollBar = new ScrollBarHelper();
 
-  /* @type {DragController|null} Drag gesture controller (attached while shown) */
-  #dragController = null;
+  /** Drag gesture controller (attached while shown) */
+  #dragController: DragController | null = null;
 
   // ==================== Component state ====================
 
-  /* @type {Object} State flags */
+  /** State flags */
   #state = {
-    /* @type {boolean} Whether the sheet is currently shown */
+    /** Whether the sheet is currently shown */
     isShown: false,
 
-    /* @type {boolean} Whether a show/hide transition is in progress */
+    /** Whether a show/hide transition is in progress */
     isTransitioning: false,
   };
 
-  /* @type {number} Total height of the sheet, measured when showing */
+  /** Whether the component has been disposed */
+  #disposed = false;
+
+  /** Total height of the sheet, measured when showing */
   #sheetHeight = 0;
 
   // ==================== Animation ====================
 
-  /* @type {SpringAnimator} Spring animation driver */
+  /** Spring animation driver */
   #springAnimator = new SpringAnimator();
 
   // ==================== Event handlers ====================
 
-  /* @type {Object} References to bound event handlers for easy removal */
-  #handlers = {
+  /** References to bound event handlers for easy removal */
+  #handlers: SheetHandlers = {
     escape: null,
     dismiss: null,
   };
 
   // ==================== Focus and inert management ====================
 
-  /* @type {FocusTrap} Focus trap helper */
-  #focusTrap;
+  /** Focus trap helper */
+  #focusTrap: FocusTrap;
 
-  /* @type {InertManager} Inert manager for content outside the sheet */
+  /** Inert manager for content outside the sheet */
   #inert = new InertManager();
 
   /**
    * Creates a new BootstrapSheet instance.
    * If an instance already exists for the given element, it is returned instead.
-   * @param {HTMLElement|string} element - The sheet element or a selector string
-   * @param {Object} [config={}] - Configuration options to override defaults
+   * @param element - The sheet element or a selector string
+   * @param config - Configuration options to override defaults
    * @throws {Error} If the element is not found or invalid
    * @throws {TypeError} If config has invalid property types
    */
-  constructor(element, config = {}) {
+  constructor(element: HTMLElement | string, config: BootstrapSheetOptions = {}) {
     const resolvedElement = resolveElement(element);
 
-    if (!resolvedElement) {
+    if (!(resolvedElement instanceof HTMLElement)) {
       throw new Error(`${NAME}: element not found`);
     }
 
+    // Assign fields before the duplicate check so every constructor path
+    // definitely initializes them; the placeholder config is replaced below.
+    this.#element = resolvedElement;
+    this.#config = Default;
+    this.#focusTrap = new FocusTrap({ trapElement: resolvedElement });
+
     // Prevent duplicate instances
-    if (INSTANCES.has(resolvedElement)) {
-      return INSTANCES.get(resolvedElement);
+    const existing = INSTANCES.get(resolvedElement);
+
+    if (existing) {
+      return existing;
     }
 
-    this.#element = resolvedElement;
-
     // Merge configuration: defaults < data-attributes < config
-    const dataConfig = extractDataAttributes(this.#element);
-    this.#config = { ...Default, ...dataConfig, ...config };
+    const dataConfig = extractDataAttributes(resolvedElement);
+    const mergedConfig: Record<string, unknown> = { ...Default, ...dataConfig, ...config };
 
-    validateConfigTypes(NAME, this.#config, DefaultType);
+    validateConfigTypes<ResolvedSheetOptions>(NAME, mergedConfig, DefaultType);
 
-    this.#focusTrap = new FocusTrap({ trapElement: this.#element });
+    this.#config = mergedConfig;
 
     this.#setupAccessibility();
 
-    INSTANCES.set(this.#element, this);
+    INSTANCES.set(resolvedElement, this);
   }
 
   // ==================== Public API ====================
 
   /**
    * Get the component name
-   * @returns {string} The component name
+   * @returns The component name
    */
-  static get NAME() {
+  static get NAME(): string {
     return NAME;
   }
 
   /**
    * Get the default configuration
-   * @returns {Object} The default configuration
+   * @returns The default configuration
    */
-  static get Default() {
+  static get Default(): ResolvedSheetOptions {
     return Default;
   }
 
   /**
    * Get an instance associated with an element
-   * @param {HTMLElement|string} element - The element or selector
-   * @throws {Error} If element parameter is invalid
-   * @returns {BootstrapSheet|null} Instance or null
+   * @param element - The element or selector
+   * @returns Instance or null
    */
-  static getInstance(element) {
+  static getInstance(element: HTMLElement | string): BootstrapSheet | null {
     const resolvedElement = resolveElement(element);
-    return resolvedElement ? INSTANCES.get(resolvedElement) || null : null;
+
+    return resolvedElement instanceof HTMLElement ? (INSTANCES.get(resolvedElement) ?? null) : null;
   }
 
   /**
    * Get or create an instance
-   * @param {HTMLElement|string} element - The element or selector
-   * @param {Object} [config={}] - Configuration options
+   * @param element - The element or selector
+   * @param config - Configuration options
    * @throws {Error} If element parameter is invalid
    * @throws {TypeError} If config has invalid property types
-   * @returns {BootstrapSheet} The instance
+   * @returns The instance
    */
-  static getOrCreateInstance(element, config = {}) {
-    return this.getInstance(element) || new this(element, config);
+  static getOrCreateInstance(
+    element: HTMLElement | string,
+    config: BootstrapSheetOptions = {},
+  ): BootstrapSheet {
+    return this.getInstance(element) ?? new this(element, config);
   }
 
   /**
    * Check if the sheet is currently shown
-   * @returns {boolean} True if shown, false otherwise
+   * @returns True if shown, false otherwise
    */
-  get isShown() {
+  get isShown(): boolean {
     return this.#state.isShown;
   }
 
   /**
    * Check if the sheet is currently transitioning
-   * @returns {boolean} True if transitioning, false otherwise
+   * @returns True if transitioning, false otherwise
    */
-  get isTransitioning() {
+  get isTransitioning(): boolean {
     return this.#state.isTransitioning;
   }
 
@@ -175,10 +198,9 @@ class BootstrapSheet {
    * @fires EVENT.SHOWN
    * @see {@link hide}
    * @see {@link toggle}
-   * @returns {void}
    */
-  show() {
-    if (!this.#element) {
+  show(): void {
+    if (this.#disposed) {
       return;
     }
 
@@ -202,10 +224,9 @@ class BootstrapSheet {
    * @fires EVENT.HIDDEN
    * @see {@link show}
    * @see {@link toggle}
-   * @returns {void}
    */
-  hide() {
-    if (!this.#element) {
+  hide(): void {
+    if (this.#disposed) {
       return;
     }
 
@@ -225,39 +246,38 @@ class BootstrapSheet {
 
   /**
    * Toggle the sheet visibility
-   * @returns {void}
    */
-  toggle() {
-    this.#state.isShown ? this.hide() : this.show();
+  toggle(): void {
+    if (this.#state.isShown) {
+      this.hide();
+    } else {
+      this.show();
+    }
   }
 
   /**
    * Dispose the component and clean up resources
-   * @returns {void}
    * @example
    * const sheet = new BootstrapSheet('#mySheet');
    * // Later, when you want to remove the sheet
    * sheet.dispose();
    */
-  dispose() {
-    if (!this.#element) {
+  dispose(): void {
+    if (this.#disposed) {
       return;
     }
 
     this.#cleanup();
     INSTANCES.delete(this.#element);
-    this.#element = null;
-    this.#config = null;
+    this.#disposed = true;
   }
 
   // ==================== Private Methods: Setup ====================
 
   /**
    * Set up accessibility attributes on the sheet element
-   * @returns {void}
-   * @private
    */
-  #setupAccessibility() {
+  #setupAccessibility(): void {
     this.#element.setAttribute('role', 'dialog');
     this.#element.setAttribute('aria-modal', 'true');
     this.#element.setAttribute('tabindex', '-1');
@@ -267,10 +287,8 @@ class BootstrapSheet {
 
   /**
    * Prepare sheet state for showing
-   * @returns {void}
-   * @private
    */
-  #prepareShow() {
+  #prepareShow(): void {
     this.#state.isShown = true;
     this.#state.isTransitioning = true;
     this.#focusTrap.capture();
@@ -280,10 +298,8 @@ class BootstrapSheet {
 
   /**
    * Execute show animation and setup
-   * @returns {void}
-   * @private
    */
-  #executeShow() {
+  #executeShow(): void {
     if (this.#config.backdrop) {
       this.#createBackdrop();
     }
@@ -304,10 +320,8 @@ class BootstrapSheet {
 
   /**
    * Finalize show animation
-   * @returns {void}
-   * @private
    */
-  #finalizeShow() {
+  #finalizeShow(): void {
     this.#element.classList.remove(CLASS_NAME.SHOWING);
     this.#element.classList.add(CLASS_NAME.SHOW);
     this.#state.isTransitioning = false;
@@ -323,10 +337,8 @@ class BootstrapSheet {
 
   /**
    * Prepare sheet state for hiding
-   * @returns {void}
-   * @private
    */
-  #prepareHide() {
+  #prepareHide(): void {
     this.#state.isShown = false;
     this.#state.isTransitioning = true;
 
@@ -345,10 +357,8 @@ class BootstrapSheet {
 
   /**
    * Execute hide animation and cleanup
-   * @returns {void}
-   * @private
    */
-  #executeHide() {
+  #executeHide(): void {
     this.#detachEventHandlers();
     this.#cancelAnimations();
     this.#inert.remove();
@@ -358,10 +368,8 @@ class BootstrapSheet {
 
   /**
    * Finalize hide animation
-   * @returns {void}
-   * @private
    */
-  #finalizeHide() {
+  #finalizeHide(): void {
     this.#element.classList.remove(CLASS_NAME.HIDING);
     this.#element.style.transform = '';
     this.#state.isTransitioning = false;
@@ -376,10 +384,8 @@ class BootstrapSheet {
 
   /**
    * Create and show the backdrop via the Backdrop helper
-   * @returns {void}
-   * @private
    */
-  #createBackdrop() {
+  #createBackdrop(): void {
     const isStatic = this.#config.backdrop === 'static';
 
     this.#backdrop = new Backdrop({
@@ -392,10 +398,8 @@ class BootstrapSheet {
 
   /**
    * Remove backdrop element from DOM
-   * @returns {void}
-   * @private
    */
-  #removeBackdrop() {
+  #removeBackdrop(): void {
     if (this.#backdrop) {
       this.#backdrop.dispose();
       this.#backdrop = null;
@@ -404,11 +408,9 @@ class BootstrapSheet {
 
   /**
    * Update backdrop opacity during drag
-   * @param {number} ratio - Opacity ratio (0 to 1)
-   * @returns {void}
-   * @private
+   * @param ratio - Opacity ratio (0 to 1)
    */
-  #updateBackdropOpacity(ratio) {
+  #updateBackdropOpacity(ratio: number): void {
     this.#backdrop?.setOpacity(ratio);
   }
 
@@ -416,10 +418,8 @@ class BootstrapSheet {
 
   /**
    * Attach all necessary event handlers
-   * @returns {void}
-   * @private
    */
-  #attachEventHandlers() {
+  #attachEventHandlers(): void {
     this.#attachEscapeHandler();
     this.#attachDismissHandlers();
 
@@ -430,10 +430,8 @@ class BootstrapSheet {
 
   /**
    * Detach all event handlers
-   * @returns {void}
-   * @private
    */
-  #detachEventHandlers() {
+  #detachEventHandlers(): void {
     this.#detachEscapeHandler();
     this.#detachDismissHandlers();
 
@@ -444,15 +442,13 @@ class BootstrapSheet {
 
   /**
    * Attach Escape key handler to close the sheet
-   * @returns {void}
-   * @private
    */
-  #attachEscapeHandler() {
+  #attachEscapeHandler(): void {
     if (!this.#config.keyboard) {
       return;
     }
 
-    this.#handlers.escape = (event) => {
+    this.#handlers.escape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (this.#config.backdrop === 'static') {
           this.#shakeSheet();
@@ -467,10 +463,8 @@ class BootstrapSheet {
 
   /**
    * Detach Escape key handler
-   * @returns {void}
-   * @private
    */
-  #detachEscapeHandler() {
+  #detachEscapeHandler(): void {
     if (this.#handlers.escape) {
       document.removeEventListener('keydown', this.#handlers.escape);
       this.#handlers.escape = null;
@@ -479,33 +473,32 @@ class BootstrapSheet {
 
   /**
    * Attach click handlers to dismiss buttons within the sheet
-   * @returns {void}
-   * @private
    */
-  #attachDismissHandlers() {
+  #attachDismissHandlers(): void {
     const dismissButtons = this.#element.querySelectorAll(SELECTOR.DATA_DISMISS);
+    const dismissHandler = (): void => this.hide();
 
-    this.#handlers.dismiss = () => this.hide();
+    this.#handlers.dismiss = dismissHandler;
 
     dismissButtons.forEach((button) => {
-      button.addEventListener('click', this.#handlers.dismiss);
+      button.addEventListener('click', dismissHandler);
     });
   }
 
   /**
    * Detach click handlers from dismiss buttons
-   * @returns {void}
-   * @private
    */
-  #detachDismissHandlers() {
-    if (!this.#handlers.dismiss) {
+  #detachDismissHandlers(): void {
+    const dismissHandler = this.#handlers.dismiss;
+
+    if (!dismissHandler) {
       return;
     }
 
     const dismissButtons = this.#element.querySelectorAll(SELECTOR.DATA_DISMISS);
 
     dismissButtons.forEach((button) => {
-      button.removeEventListener('click', this.#handlers.dismiss);
+      button.removeEventListener('click', dismissHandler);
     });
 
     this.#handlers.dismiss = null;
@@ -514,10 +507,8 @@ class BootstrapSheet {
   /**
    * Animate shake effect for static backdrop via Web Animations API.
    * Uses composite: 'add' so the shake overlays the spring transform without interfering.
-   * @returns {void}
-   * @private
    */
-  #shakeSheet() {
+  #shakeSheet(): void {
     if (typeof this.#element.animate !== 'function') {
       return;
     }
@@ -541,11 +532,9 @@ class BootstrapSheet {
    * Create and attach the drag controller for the sheet's drag handle.
    * The controller owns pointer input and gesture physics; DOM side effects
    * (transform, backdrop, class names, events, animations) happen here.
-   * @returns {void}
-   * @private
    */
-  #attachGestureHandlers() {
-    const dragHandle = this.#element.querySelector(SELECTOR.DRAG_HANDLE);
+  #attachGestureHandlers(): void {
+    const dragHandle = this.#element.querySelector<HTMLElement>(SELECTOR.DRAG_HANDLE);
 
     if (!dragHandle) {
       return;
@@ -580,10 +569,8 @@ class BootstrapSheet {
 
   /**
    * Abort any active drag and detach the drag controller
-   * @returns {void}
-   * @private
    */
-  #detachGestureHandlers() {
+  #detachGestureHandlers(): void {
     if (this.#dragController) {
       this.#dragController.abort();
       this.#dragController.detach();
@@ -594,9 +581,8 @@ class BootstrapSheet {
   // ==================== Private Methods: Spring Animation ====================
 
   /**
-   * Resolve spring parameters from config.
-   * @returns {{ stiffness: number, damping: number, mass: number }} Spring constants
-   * @private
+   * Resolve spring parameters from config
+   * @returns Physical spring constants
    */
   #resolveSpringParams() {
     return springParameters(this.#config.springDampingRatio, this.#config.springResponse);
@@ -606,13 +592,11 @@ class BootstrapSheet {
    * Animate sheet to target position using the spring driver.
    * The driver produces positions; applying them to the DOM (transform,
    * backdrop opacity, class names) happens here.
-   * @param {number} targetY - Target translateY position
-   * @param {number} [initialVelocity=0] - Velocity at animation start (px/s)
-   * @param {Function} [onComplete] - Callback when animation settles
-   * @returns {void}
-   * @private
+   * @param targetY - Target translateY position
+   * @param initialVelocity - Velocity at animation start (px/s)
+   * @param onComplete - Callback when animation settles
    */
-  #animateSpring(targetY, initialVelocity = 0, onComplete) {
+  #animateSpring(targetY: number, initialVelocity = 0, onComplete?: () => void): void {
     this.#cancelAnimations();
 
     this.#element.classList.add(CLASS_NAME.ANIMATING);
@@ -642,31 +626,26 @@ class BootstrapSheet {
    * Convert absolute translateY position to a backdrop opacity ratio.
    * Returns 1 (fully opaque) when sheet is fully open (position = 0),
    * and 0 (transparent) when fully closed (position = sheetHeight).
-   * @param {number} position - Current translateY in pixels
-   * @returns {number} Ratio in range [0, 1]
-   * @private
+   * @param position - Current translateY in pixels
+   * @returns Ratio in range [0, 1]
    */
-  #positionToRatio(position) {
+  #positionToRatio(position: number): number {
     return 1 - (this.#sheetHeight ? position / this.#sheetHeight : 0);
   }
 
   /**
    * Cancel the spring animation
-   * @returns {void}
-   * @private
    */
-  #cancelAnimations() {
+  #cancelAnimations(): void {
     this.#springAnimator.cancel();
 
-    this.#element?.classList.remove(CLASS_NAME.ANIMATING);
+    this.#element.classList.remove(CLASS_NAME.ANIMATING);
   }
 
   /**
    * Clean up component state and resources
-   * @returns {void}
-   * @private
    */
-  #cleanup() {
+  #cleanup(): void {
     // Reset state
     this.#state.isShown = false;
     this.#state.isTransitioning = false;
@@ -681,12 +660,11 @@ class BootstrapSheet {
 
   /**
    * Trigger custom event on the sheet element
-   * @param {string} name - Event name
-   * @param {Object} detail - Event detail object
-   * @returns {CustomEvent} The triggered event
-   * @private
+   * @param name - Event name
+   * @param detail - Event detail object
+   * @returns The triggered event
    */
-  #triggerEvent(name, detail = {}) {
+  #triggerEvent(name: string, detail: Record<string, unknown> = {}): CustomEvent {
     const event = new CustomEvent(name, {
       detail,
       bubbles: true,
@@ -705,7 +683,11 @@ class BootstrapSheet {
  * Global click handler to toggle sheets via data attributes
  */
 document.addEventListener('click', (event) => {
-  const trigger = event.target.closest?.(SELECTOR.DATA_TOGGLE);
+  if (!(event.target instanceof Element)) {
+    return;
+  }
+
+  const trigger = event.target.closest(SELECTOR.DATA_TOGGLE);
 
   if (!trigger) {
     return;
@@ -721,14 +703,22 @@ document.addEventListener('click', (event) => {
 
   const sheetElement = document.querySelector(targetSelector);
 
-  if (!sheetElement) {
+  if (!(sheetElement instanceof HTMLElement)) {
     return;
   }
 
-  const sheetConfig = extractDataAttributes(sheetElement);
-  const triggerConfig = extractDataAttributes(trigger);
-  const mergedConfig = { ...sheetConfig, ...triggerConfig };
-  const sheetInstance = BootstrapSheet.getOrCreateInstance(sheetElement, mergedConfig);
+  let sheetInstance = BootstrapSheet.getInstance(sheetElement);
+
+  if (!sheetInstance) {
+    const sheetConfig = extractDataAttributes(sheetElement);
+    const triggerConfig = extractDataAttributes(trigger);
+    const mergedConfig: Record<string, unknown> = { ...sheetConfig, ...triggerConfig };
+
+    // Runtime-validates the parsed attributes and narrows them to typed options
+    validateConfigTypes<BootstrapSheetOptions>(NAME, mergedConfig, DefaultType);
+
+    sheetInstance = new BootstrapSheet(sheetElement, mergedConfig);
+  }
 
   sheetInstance.toggle();
 });
@@ -736,6 +726,12 @@ document.addEventListener('click', (event) => {
 // ==================== Export ====================
 
 export default BootstrapSheet;
+
+declare global {
+  interface Window {
+    BootstrapSheet: typeof BootstrapSheet;
+  }
+}
 
 if (typeof window !== 'undefined') {
   window.BootstrapSheet = BootstrapSheet;

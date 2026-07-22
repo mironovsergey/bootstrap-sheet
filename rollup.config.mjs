@@ -12,7 +12,7 @@ const banner = `/*!
 export default [
   // UMD build
   {
-    input: 'src/js/bootstrap-sheet.js',
+    input: 'src/js/bootstrap-sheet.ts',
     output: {
       file: 'dist/js/bootstrap-sheet.js',
       format: 'umd',
@@ -34,7 +34,7 @@ export default [
   },
   // UMD minified
   {
-    input: 'src/js/bootstrap-sheet.js',
+    input: 'src/js/bootstrap-sheet.ts',
     output: {
       file: 'dist/js/bootstrap-sheet.min.js',
       format: 'umd',
@@ -57,7 +57,7 @@ export default [
   },
   // ESM build
   {
-    input: 'src/js/bootstrap-sheet.js',
+    input: 'src/js/bootstrap-sheet.ts',
     output: {
       file: 'dist/js/bootstrap-sheet.esm.js',
       format: 'es',
