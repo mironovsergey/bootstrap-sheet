@@ -81,6 +81,7 @@ jobs:
             dist/js/bootstrap-sheet.esm.js
             dist/css/bootstrap-sheet.css
             dist/css/bootstrap-sheet.min.css
+            dist/types/*.d.ts
           draft: false
           prerelease: false
         env:
