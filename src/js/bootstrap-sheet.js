@@ -1,33 +1,22 @@
-import {
-  NAME,
-  EVENT,
-  CLASS_NAME,
-  SELECTOR,
-  FOCUSABLE_SELECTOR,
-  Default,
-  DefaultType,
-  RUBBER_BAND_COEFFICIENT,
-  DECELERATION_RATE,
-} from './constants';
+import { NAME, EVENT, CLASS_NAME, SELECTOR, Default, DefaultType } from './constants';
 
 import {
   resolveElement,
   extractTargetSelector,
   clamp,
-  getScrollbarWidth,
   extractDataAttributes,
   validateConfigTypes,
   getTranslateY,
-  rubberBand,
   springParameters,
-  solveSpring,
-  isSpringSettled,
-  projectDisplacement,
-  VelocityTracker,
 } from './utils';
 
+import Backdrop from './backdrop';
+import ScrollBarHelper from './scrollbar';
+import FocusTrap, { InertManager } from './focus-trap';
+import SpringAnimator from './spring-animator';
+import DragController from './drag-controller';
+
 const INSTANCES = new WeakMap();
-const SUPPORTS_INERT = 'inert' in HTMLElement.prototype;
 
 /**
  * @class BootstrapSheet - A touch-friendly bottom sheet component for Bootstrap 5
@@ -44,11 +33,14 @@ class BootstrapSheet {
   /* @type {Object} Configuration object */
   #config;
 
-  /* @type {HTMLElement|null} Backdrop element */
+  /* @type {Backdrop|null} Backdrop helper instance */
   #backdrop = null;
 
-  /* @type {HTMLElement|null} Drag handle element (if any) */
-  #dragHandle = null;
+  /* @type {ScrollBarHelper} Body scrollbar compensation helper */
+  #scrollBar = new ScrollBarHelper();
+
+  /* @type {DragController|null} Drag gesture controller (attached while shown) */
+  #dragController = null;
 
   // ==================== Component state ====================
 
@@ -59,15 +51,15 @@ class BootstrapSheet {
 
     /* @type {boolean} Whether a show/hide transition is in progress */
     isTransitioning: false,
-
-    /* @type {boolean} Whether the sheet is currently being dragged */
-    isDragging: false,
   };
 
-  // ==================== Timeouts and animation frames ====================
+  /* @type {number} Total height of the sheet, measured when showing */
+  #sheetHeight = 0;
 
-  /* @type {number|null} Animation frame ID for gesture updates */
-  #animationFrame = null;
+  // ==================== Animation ====================
+
+  /* @type {SpringAnimator} Spring animation driver */
+  #springAnimator = new SpringAnimator();
 
   // ==================== Event handlers ====================
 
@@ -75,50 +67,15 @@ class BootstrapSheet {
   #handlers = {
     escape: null,
     dismiss: null,
-    focusTrap: null,
-    pointerDown: null,
-    pointerMove: null,
-    pointerUp: null,
   };
 
-  // ==================== Focus management ====================
+  // ==================== Focus and inert management ====================
 
-  /* @type {Object} Focus management state */
-  #focus = {
-    /* @type {HTMLElement|null} Previously focused element before sheet opened */
-    previousElement: null,
+  /* @type {FocusTrap} Focus trap helper */
+  #focusTrap;
 
-    /* @type {HTMLElement[]} Array of focusable elements within sheet */
-    focusableElements: null,
-
-    /* @type {MutationObserver|null} Observer for focusable element changes */
-    mutationObserver: null,
-  };
-
-  // ==================== Inert management ====================
-
-  /* @type {Map<HTMLElement, Object>} Map of inerted nodes and their previous states */
-  #inertedNodes = new Map();
-
-  // ==================== Gesture tracking ====================
-
-  /* @type {VelocityTracker} Windowed velocity tracker for gesture measurement */
-  #velocityTracker = new VelocityTracker(100);
-
-  /* @type {Object} Gesture tracking state */
-  #gesture = {
-    /* @type {number} Initial Y coordinate when drag starts */
-    startY: 0,
-
-    /* @type {number} Current Y coordinate during drag */
-    currentY: 0,
-
-    /* @type {number} Initial translateY value when drag starts */
-    startTranslateY: 0,
-
-    /* @type {number} Total height of the sheet */
-    sheetHeight: 0,
-  };
+  /* @type {InertManager} Inert manager for content outside the sheet */
+  #inert = new InertManager();
 
   /**
    * Creates a new BootstrapSheet instance.
@@ -147,6 +104,8 @@ class BootstrapSheet {
     this.#config = { ...Default, ...dataConfig, ...config };
 
     validateConfigTypes(NAME, this.#config, DefaultType);
+
+    this.#focusTrap = new FocusTrap({ trapElement: this.#element });
 
     this.#setupAccessibility();
 
@@ -314,8 +273,8 @@ class BootstrapSheet {
   #prepareShow() {
     this.#state.isShown = true;
     this.#state.isTransitioning = true;
-    this.#focus.previousElement = document.activeElement;
-    this.#gesture.sheetHeight =
+    this.#focusTrap.capture();
+    this.#sheetHeight =
       this.#element.offsetHeight || this.#element.getBoundingClientRect().height || 0;
   }
 
@@ -329,15 +288,15 @@ class BootstrapSheet {
       this.#createBackdrop();
     }
 
-    this.#applyInert();
-    this.#adjustBodyPadding();
+    this.#inert.apply([this.#backdrop?.element, this.#element]);
+    this.#scrollBar.hide();
 
     this.#element.classList.add(CLASS_NAME.SHOWING);
 
     this.#attachEventHandlers();
 
     if (this.#config.focus) {
-      this.#startFocusManagement();
+      this.#focusTrap.activate();
     }
 
     this.#animateSpring(0, 0, () => this.#finalizeShow());
@@ -354,7 +313,7 @@ class BootstrapSheet {
     this.#state.isTransitioning = false;
 
     if (this.#config.focus) {
-      this.#trapFocus();
+      this.#focusTrap.focusInitial();
     }
 
     this.#triggerEvent(EVENT.SHOWN);
@@ -371,12 +330,13 @@ class BootstrapSheet {
     this.#state.isShown = false;
     this.#state.isTransitioning = true;
 
-    if (this.#state.isDragging) {
-      this.#abortDrag();
+    if (this.#dragController?.isDragging) {
+      this.#dragController.abort();
+      this.#cancelAnimations();
     }
 
     if (this.#config.focus) {
-      this.#stopFocusManagement();
+      this.#focusTrap.deactivate();
     }
 
     this.#element.classList.add(CLASS_NAME.HIDING);
@@ -391,9 +351,9 @@ class BootstrapSheet {
   #executeHide() {
     this.#detachEventHandlers();
     this.#cancelAnimations();
-    this.#removeInert();
+    this.#inert.remove();
 
-    this.#animateSpring(this.#gesture.sheetHeight, 0, () => this.#finalizeHide());
+    this.#animateSpring(this.#sheetHeight, 0, () => this.#finalizeHide());
   }
 
   /**
@@ -407,34 +367,27 @@ class BootstrapSheet {
     this.#state.isTransitioning = false;
 
     this.#removeBackdrop();
-    this.#resetBodyPadding();
-    this.#restoreFocus();
+    this.#scrollBar.reset();
+    this.#focusTrap.restore();
     this.#triggerEvent(EVENT.HIDDEN);
   }
 
   // ==================== Private Methods: Backdrop ====================
 
   /**
-   * Create the backdrop element
+   * Create and show the backdrop via the Backdrop helper
    * @returns {void}
    * @private
    */
   #createBackdrop() {
-    const backdrop = document.createElement('div');
+    const isStatic = this.#config.backdrop === 'static';
 
-    backdrop.className = CLASS_NAME.BACKDROP;
-    backdrop.style.opacity = '0';
+    this.#backdrop = new Backdrop({
+      isStatic,
+      onClick: () => (isStatic ? this.#shakeSheet() : this.hide()),
+    });
 
-    if (this.#config.backdrop === 'static') {
-      backdrop.dataset.bsStatic = '';
-      backdrop.addEventListener('click', () => this.#shakeSheet());
-    } else {
-      backdrop.addEventListener('click', () => this.hide());
-    }
-
-    document.body.appendChild(backdrop);
-
-    this.#backdrop = backdrop;
+    this.#backdrop.show();
   }
 
   /**
@@ -444,7 +397,7 @@ class BootstrapSheet {
    */
   #removeBackdrop() {
     if (this.#backdrop) {
-      this.#backdrop.remove();
+      this.#backdrop.dispose();
       this.#backdrop = null;
     }
   }
@@ -456,251 +409,7 @@ class BootstrapSheet {
    * @private
    */
   #updateBackdropOpacity(ratio) {
-    if (!this.#config.backdrop || !this.#backdrop) {
-      return;
-    }
-
-    this.#backdrop.style.opacity = String(clamp(ratio, 0, 1));
-  }
-
-  // ==================== Private Methods: Body scroll ====================
-
-  /**
-   * Adjust body padding to prevent layout shift when showing the sheet
-   * @returns {void}
-   * @private
-   */
-  #adjustBodyPadding() {
-    const isOverflowing = document.body.scrollHeight > window.innerHeight;
-
-    if (isOverflowing) {
-      const scrollbarWidth = getScrollbarWidth();
-
-      if (scrollbarWidth > 0) {
-        document.body.style.paddingRight = `${scrollbarWidth}px`;
-        document.body.style.overflow = 'hidden';
-      }
-    }
-  }
-
-  /**
-   * Reset body padding and overflow to original state
-   * @returns {void}
-   * @private
-   */
-  #resetBodyPadding() {
-    document.body.style.paddingRight = '';
-    document.body.style.overflow = '';
-  }
-
-  // ==================== Private Methods: Inert ====================
-
-  /**
-   * Apply inert or aria-hidden to all elements outside the sheet.
-   * Uses native 'inert' attribute if supported, falls back to aria-hidden otherwise.
-   * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/inert}
-   * @returns {void}
-   * @private
-   */
-  #applyInert() {
-    const bodyChildren = Array.from(document.body.children);
-
-    for (const node of bodyChildren) {
-      if (node === this.#backdrop || node === this.#element) {
-        continue;
-      }
-
-      if (SUPPORTS_INERT) {
-        this.#inertedNodes.set(node, { inert: node.inert || false });
-        node.inert = true;
-      } else {
-        this.#inertedNodes.set(node, { ariaHidden: node.getAttribute('aria-hidden') });
-        node.setAttribute('aria-hidden', 'true');
-      }
-    }
-  }
-
-  /**
-   * Remove inert or aria-hidden from all previously inerted elements
-   * @returns {void}
-   * @private
-   */
-  #removeInert() {
-    if (this.#inertedNodes.size === 0) {
-      return;
-    }
-
-    for (const [node, previousState] of this.#inertedNodes.entries()) {
-      if (!node) {
-        continue;
-      }
-
-      if (SUPPORTS_INERT) {
-        node.inert = previousState.inert;
-      } else {
-        if (previousState.ariaHidden === null || previousState.ariaHidden === undefined) {
-          node.removeAttribute('aria-hidden');
-        } else {
-          node.setAttribute('aria-hidden', previousState.ariaHidden);
-        }
-      }
-    }
-
-    this.#inertedNodes.clear();
-  }
-
-  // ==================== Private Methods: Focus Management ====================
-
-  /**
-   * Start managing focus within the sheet
-   * @returns {void}
-   * @private
-   */
-  #startFocusManagement() {
-    this.#updateFocusableElements();
-    this.#attachFocusTrapHandler();
-    this.#observeFocusableChanges();
-  }
-
-  /**
-   * Stop managing focus within the sheet
-   * @returns {void}
-   * @private
-   */
-  #stopFocusManagement() {
-    this.#detachFocusTrapHandler();
-    this.#disconnectFocusObserver();
-  }
-
-  /**
-   * Update the list of focusable elements within the sheet
-   * @returns {void}
-   * @private
-   */
-  #updateFocusableElements() {
-    const elements = this.#element.querySelectorAll(FOCUSABLE_SELECTOR);
-
-    this.#focus.focusableElements = Array.from(elements).filter(
-      (element) =>
-        element.offsetParent !== null &&
-        !element.hasAttribute('inert') &&
-        element.getAttribute('aria-hidden') !== 'true',
-    );
-  }
-
-  /**
-   * Attach keydown handler to trap focus within the sheet
-   * @returns {void}
-   * @private
-   */
-  #attachFocusTrapHandler() {
-    this.#handlers.focusTrap = (event) => {
-      if (event.key === 'Tab') {
-        this.#handleTabKey(event);
-      }
-    };
-
-    this.#element.addEventListener('keydown', this.#handlers.focusTrap);
-  }
-
-  /**
-   * Detach keydown handler for focus trap
-   * @returns {void}
-   * @private
-   */
-  #detachFocusTrapHandler() {
-    if (this.#handlers.focusTrap) {
-      this.#element.removeEventListener('keydown', this.#handlers.focusTrap);
-      this.#handlers.focusTrap = null;
-    }
-  }
-
-  /**
-   * Handle Tab key to trap focus within the sheet
-   * @param {KeyboardEvent} event - The keydown event
-   * @returns {void}
-   * @private
-   */
-  #handleTabKey(event) {
-    const { focusableElements } = this.#focus;
-
-    if (!focusableElements?.length) {
-      return;
-    }
-
-    const first = focusableElements[0];
-    const last = focusableElements[focusableElements.length - 1];
-    const current = document.activeElement;
-
-    if (event.shiftKey && current === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && current === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  }
-
-  /**
-   * Focus the first focusable element or the sheet itself
-   * @returns {void}
-   * @private
-   */
-  #trapFocus() {
-    this.#updateFocusableElements();
-
-    if (this.#focus.focusableElements?.length) {
-      this.#focus.focusableElements[0].focus();
-    } else {
-      this.#element.focus();
-    }
-  }
-
-  /**
-   * Restore focus to the previously focused element
-   * @returns {void}
-   * @private
-   */
-  #restoreFocus() {
-    const { previousElement } = this.#focus;
-
-    if (previousElement && typeof previousElement.focus === 'function') {
-      previousElement.focus();
-    }
-  }
-
-  /**
-   * Observe changes to focusable elements within the sheet
-   * @returns {void}
-   * @private
-   */
-  #observeFocusableChanges() {
-    if (this.#focus.mutationObserver) {
-      return;
-    }
-
-    this.#focus.mutationObserver = new MutationObserver(() => {
-      this.#updateFocusableElements();
-    });
-
-    this.#focus.mutationObserver.observe(this.#element, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['tabindex', 'disabled', 'hidden', 'aria-hidden'],
-    });
-  }
-
-  /**
-   * Disconnect the mutation observer for focusable elements
-   * @returns {void}
-   * @private
-   */
-  #disconnectFocusObserver() {
-    if (this.#focus.mutationObserver) {
-      this.#focus.mutationObserver.disconnect();
-      this.#focus.mutationObserver = null;
-    }
+    this.#backdrop?.setOpacity(ratio);
   }
 
   // ==================== Private Methods: Event Handlers ====================
@@ -829,224 +538,56 @@ class BootstrapSheet {
   // ==================== Private Methods: Gestures ====================
 
   /**
-   * Attach gesture event handlers
+   * Create and attach the drag controller for the sheet's drag handle.
+   * The controller owns pointer input and gesture physics; DOM side effects
+   * (transform, backdrop, class names, events, animations) happen here.
    * @returns {void}
    * @private
    */
   #attachGestureHandlers() {
-    this.#dragHandle = this.#element.querySelector(SELECTOR.DRAG_HANDLE);
+    const dragHandle = this.#element.querySelector(SELECTOR.DRAG_HANDLE);
 
-    if (!this.#dragHandle) {
+    if (!dragHandle) {
       return;
     }
 
-    this.#handlers.pointerDown = (event) => this.#onPointerDown(event);
-    this.#handlers.pointerMove = (event) => this.#onPointerMove(event);
-    this.#handlers.pointerUp = (event) => this.#onPointerUp(event);
+    this.#dragController = new DragController({
+      handle: dragHandle,
+      getPosition: () => getTranslateY(this.#element),
+      getSheetHeight: () => this.#sheetHeight,
+      isEnabled: () => this.#state.isShown,
+      onDragStart: () => this.#element.classList.add(CLASS_NAME.DRAGGING),
+      onDragEnd: () => this.#element.classList.remove(CLASS_NAME.DRAGGING),
+      onTakeover: () => this.#springAnimator.cancel(),
+      onMove: ({ adjustedY, deltaY, ratio, velocity }) => {
+        this.#element.style.transform = `translateY(${adjustedY}px)`;
 
-    this.#dragHandle.addEventListener('pointerdown', this.#handlers.pointerDown, {
-      passive: false,
+        this.#updateBackdropOpacity(clamp(ratio, 0, 1));
+
+        this.#triggerEvent(EVENT.SLIDE, { velocity, adjustedY, deltaY, ratio });
+      },
+      onRelease: ({ shouldDismiss, velocity }) => {
+        if (shouldDismiss) {
+          this.#animateSpring(this.#sheetHeight, velocity, () => this.hide());
+        } else {
+          this.#animateSpring(0, velocity);
+        }
+      },
     });
 
-    document.addEventListener('pointermove', this.#handlers.pointerMove);
-    document.addEventListener('pointerup', this.#handlers.pointerUp);
-    document.addEventListener('pointercancel', this.#handlers.pointerUp);
+    this.#dragController.attach();
   }
 
   /**
-   * Detach gesture event handlers
+   * Abort any active drag and detach the drag controller
    * @returns {void}
    * @private
    */
   #detachGestureHandlers() {
-    if (this.#dragHandle && this.#handlers.pointerDown) {
-      this.#dragHandle.removeEventListener('pointerdown', this.#handlers.pointerDown);
-      this.#dragHandle = null;
-    }
-
-    document.removeEventListener('pointermove', this.#handlers.pointerMove);
-    document.removeEventListener('pointerup', this.#handlers.pointerUp);
-    document.removeEventListener('pointercancel', this.#handlers.pointerUp);
-
-    this.#handlers.pointerDown = null;
-    this.#handlers.pointerMove = null;
-    this.#handlers.pointerUp = null;
-  }
-
-  /**
-   * Handle pointer down event to start dragging
-   * @param {PointerEvent} event - The pointerdown event
-   * @returns {void}
-   * @private
-   */
-  #onPointerDown(event) {
-    event.preventDefault();
-
-    this.#state.isDragging = true;
-    this.#gesture.startY = event.clientY;
-    this.#gesture.currentY = event.clientY;
-    this.#gesture.startTranslateY = getTranslateY(this.#element);
-
-    this.#velocityTracker.reset();
-    this.#velocityTracker.addSample(event.timeStamp, event.clientY);
-
-    this.#element.classList.add(CLASS_NAME.DRAGGING);
-
-    try {
-      event.target?.setPointerCapture?.(event.pointerId);
-    } catch (error) {
-      console.warn('Failed to capture pointer:', error);
-    }
-  }
-
-  /**
-   * Handle pointer move event to update dragging
-   * @param {PointerEvent} event - The pointermove event
-   * @returns {void}
-   * @private
-   */
-  #onPointerMove(event) {
-    if (!this.#state.isDragging || !this.#state.isShown) {
-      return;
-    }
-
-    this.#gesture.currentY = event.clientY;
-
-    this.#velocityTracker.addSample(event.timeStamp, event.clientY);
-
-    this.#schedulePositionUpdate();
-  }
-
-  /**
-   * Schedule position update on next animation frame
-   * @returns {void}
-   * @private
-   */
-  #schedulePositionUpdate() {
-    if (this.#animationFrame) {
-      cancelAnimationFrame(this.#animationFrame);
-    }
-
-    this.#animationFrame = requestAnimationFrame(() => {
-      const deltaY = this.#gesture.currentY - this.#gesture.startY;
-      this.#updateDragPosition(deltaY);
-    });
-  }
-
-  /**
-   * Update sheet position during drag
-   * @param {number} deltaY - Raw Y delta from gesture start position
-   * @fires EVENT.SLIDE
-   * @returns {void}
-   * @private
-   */
-  #updateDragPosition(deltaY) {
-    const adjustedY = this.#calculateResistantPosition(deltaY);
-
-    this.#element.style.transform = `translateY(${adjustedY}px)`;
-
-    const ratio = this.#positionToRatio(adjustedY);
-
-    this.#updateBackdropOpacity(clamp(ratio, 0, 1));
-
-    this.#triggerEvent(EVENT.SLIDE, {
-      velocity: this.#velocityTracker.getVelocity(performance.now()),
-      adjustedY,
-      deltaY,
-      ratio,
-    });
-  }
-
-  /**
-   * Calculate the adjusted position based on Apple's rubber band formula.
-   *
-   * Three zones:
-   * 1. Past top bound (rawPosition < 0): rubber band resistance
-   * 2. Between bounds (0 <= rawPosition <= sheetHeight): track finger 1:1
-   * 3. Past bottom (rawPosition > sheetHeight): clamped (shouldn't happen normally)
-   *
-   * @param {number} deltaY - Raw Y delta from gesture start position
-   * @returns {number} Adjusted absolute translateY position
-   * @private
-   */
-  #calculateResistantPosition(deltaY) {
-    if (deltaY === 0) {
-      return this.#gesture.startTranslateY;
-    }
-
-    const rawPosition = this.#gesture.startTranslateY + deltaY;
-
-    // Past top bound: apply rubber band resistance
-    if (rawPosition < 0) {
-      const overscroll = -rawPosition;
-      const resistedOverscroll = rubberBand(
-        overscroll,
-        this.#gesture.sheetHeight,
-        RUBBER_BAND_COEFFICIENT,
-      );
-      return -resistedOverscroll;
-    }
-
-    // Within bounds or dragging down toward dismiss: track finger 1:1
-    return rawPosition;
-  }
-
-  /**
-   * Handle pointer up event to end dragging
-   * @param {PointerEvent} event - The pointerup event
-   * @returns {void}
-   * @private
-   */
-  #onPointerUp(event) {
-    if (!this.#state.isDragging) {
-      return;
-    }
-
-    this.#state.isDragging = false;
-    this.#element.classList.remove(CLASS_NAME.DRAGGING);
-
-    const velocity = this.#velocityTracker.getVelocity(event.timeStamp);
-
-    try {
-      event.target?.releasePointerCapture?.(event.pointerId);
-    } catch (error) {
-      console.warn('Failed to release pointer:', error);
-    }
-
-    this.#handleDragEnd(velocity);
-  }
-
-  /**
-   * Handle drag end and determine whether to snap back or dismiss.
-   *
-   * Uses Apple's velocity projection model: projects where the sheet would
-   * come to rest after decelerating, then decides based on that projected
-   * position. If the projection passes the midpoint of the sheet height,
-   * the sheet is dismissed. Otherwise it snaps back to the open position.
-   *
-   * @returns {void}
-   * @private
-   */
-  #handleDragEnd(velocity) {
-    const deltaY = this.#gesture.currentY - this.#gesture.startY;
-    const velocityPxPerSec = (velocity || 0) * 1000;
-
-    // Dragging up: always snap back to open position
-    if (deltaY <= 0) {
-      this.#animateSpring(0, velocityPxPerSec);
-      return;
-    }
-
-    // Dragging down: project where the sheet would come to rest
-    const currentY = this.#calculateResistantPosition(deltaY);
-    const displacement = projectDisplacement(velocityPxPerSec, DECELERATION_RATE);
-    const projectedY = currentY + displacement;
-
-    // Dismiss if projection passes midpoint of sheet height
-    if (projectedY > this.#gesture.sheetHeight * 0.5) {
-      this.#animateSpring(this.#gesture.sheetHeight, velocityPxPerSec, () => this.hide());
-    } else {
-      this.#animateSpring(0, velocityPxPerSec);
+    if (this.#dragController) {
+      this.#dragController.abort();
+      this.#dragController.detach();
+      this.#dragController = null;
     }
   }
 
@@ -1062,13 +603,9 @@ class BootstrapSheet {
   }
 
   /**
-   * Animate sheet to target position using spring physics.
-   *
-   * Unlike easing-based animation, the spring has no fixed duration - it runs
-   * until position and velocity settle below threshold. The initialVelocity
-   * parameter enables seamless handoff from gesture: the spring starts moving
-   * at the same speed the finger was moving at release.
-   *
+   * Animate sheet to target position using the spring driver.
+   * The driver produces positions; applying them to the DOM (transform,
+   * backdrop opacity, class names) happens here.
    * @param {number} targetY - Target translateY position
    * @param {number} [initialVelocity=0] - Velocity at animation start (px/s)
    * @param {Function} [onComplete] - Callback when animation settles
@@ -1076,49 +613,27 @@ class BootstrapSheet {
    * @private
    */
   #animateSpring(targetY, initialVelocity = 0, onComplete) {
-    const params = this.#resolveSpringParams();
-
-    let state = {
-      position: getTranslateY(this.#element),
-      velocity: initialVelocity,
-    };
-
-    let lastTime = null;
-
-    const animate = (currentTime) => {
-      if (lastTime === null) {
-        lastTime = currentTime;
-      }
-
-      // Cap dt so a long pause (tab switch) resumes smoothly rather than teleporting.
-      const dt = Math.min((currentTime - lastTime) / 1000, 1 / 30);
-      lastTime = currentTime;
-
-      state = solveSpring(state, targetY, params, dt);
-
-      this.#element.style.transform = `translateY(${state.position}px)`;
-
-      const ratio = this.#positionToRatio(state.position);
-
-      this.#updateBackdropOpacity(clamp(ratio, 0, 1));
-
-      if (isSpringSettled(state, targetY)) {
-        // Snap to exact target and clean up
-        this.#element.style.transform = `translateY(${targetY}px)`;
-        this.#element.classList.remove(CLASS_NAME.ANIMATING);
-        this.#animationFrame = null;
-
-        onComplete?.();
-      } else {
-        this.#animationFrame = requestAnimationFrame(animate);
-      }
-    };
-
     this.#cancelAnimations();
 
     this.#element.classList.add(CLASS_NAME.ANIMATING);
 
-    this.#animationFrame = requestAnimationFrame(animate);
+    this.#springAnimator.start({
+      from: getTranslateY(this.#element),
+      to: targetY,
+      initialVelocity,
+      params: this.#resolveSpringParams(),
+      onFrame: (position) => {
+        this.#element.style.transform = `translateY(${position}px)`;
+        this.#updateBackdropOpacity(clamp(this.#positionToRatio(position), 0, 1));
+      },
+      onSettle: () => {
+        // Snap to exact target and clean up
+        this.#element.style.transform = `translateY(${targetY}px)`;
+        this.#element.classList.remove(CLASS_NAME.ANIMATING);
+
+        onComplete?.();
+      },
+    });
   }
 
   // ==================== Private Methods: Utilities ====================
@@ -1132,37 +647,18 @@ class BootstrapSheet {
    * @private
    */
   #positionToRatio(position) {
-    return 1 - (this.#gesture.sheetHeight ? position / this.#gesture.sheetHeight : 0);
+    return 1 - (this.#sheetHeight ? position / this.#sheetHeight : 0);
   }
 
   /**
-   * Cancel all pending animations
+   * Cancel the spring animation
    * @returns {void}
    * @private
    */
   #cancelAnimations() {
-    if (this.#animationFrame) {
-      cancelAnimationFrame(this.#animationFrame);
-      this.#animationFrame = null;
-    }
+    this.#springAnimator.cancel();
 
     this.#element?.classList.remove(CLASS_NAME.ANIMATING);
-  }
-
-  /**
-   * Abort current drag operation
-   * @returns {void}
-   * @private
-   */
-  #abortDrag() {
-    if (!this.#state.isDragging) {
-      return;
-    }
-
-    this.#state.isDragging = false;
-    this.#element.classList.remove(CLASS_NAME.DRAGGING);
-
-    this.#cancelAnimations();
   }
 
   /**
@@ -1174,14 +670,13 @@ class BootstrapSheet {
     // Reset state
     this.#state.isShown = false;
     this.#state.isTransitioning = false;
-    this.#state.isDragging = false;
 
-    this.#resetBodyPadding();
+    this.#scrollBar.reset();
     this.#removeBackdrop();
     this.#detachEventHandlers();
     this.#cancelAnimations();
-    this.#disconnectFocusObserver();
-    this.#removeInert();
+    this.#focusTrap.deactivate();
+    this.#inert.remove();
   }
 
   /**
