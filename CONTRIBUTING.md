@@ -62,59 +62,68 @@ npm run dev
 ```
 bootstrap-sheet/
 ├── src/
-│   ├── js/             # JavaScript source files
-│   ├── scss/           # Sass source files
-│   └── types/          # TypeScript definitions
-├── dist/               # Built files (generated)
-├── tests/              # Test files
+│   ├── js/             # TypeScript source files
+│   └── scss/           # Sass source files
+├── dist/               # Built files (generated): JS bundles, CSS, type declarations
+├── tests/              # Test files (plain JavaScript, run against the public API)
 └── docs/               # Documentation
 ```
 
 ### Available Scripts
 
 - `npm run dev` - Start development mode with file watching
-- `npm run build` - Build production files
+- `npm run build` - Build production files (JS bundles, CSS, type declarations)
 - `npm test` - Run test suite
+- `npm run check:types` - Type-check the sources with the TypeScript compiler
 - `npm run lint` - Run ESLint
 - `npm run format` - Format code with Prettier
 
 ### Coding Standards
 
-#### JavaScript
+#### TypeScript
 
-- Use ES6+ features
-- Follow the existing code style
-- Use meaningful variable and function names
-- Add JSDoc comments for all public methods
-- Keep functions small and focused
+The source code is TypeScript with `strict` mode enabled. Compilation to
+JavaScript is handled by Babel; `npm run check:types` runs the TypeScript
+compiler as a separate check (also enforced in CI and the pre-commit hook).
 
-```javascript
+- Do not use `any`, type assertions (`as`), `@ts-ignore` / `@ts-expect-error`,
+  or non-null assertions (`!`) - fix the underlying types instead (enforced by
+  ESLint)
+- Add JSDoc comments for all public methods; put types in signatures, not in
+  JSDoc annotations
+- Use `import type` / `export type` for type-only imports and re-exports;
+  Babel strips types file-by-file, so `const enum` across files and
+  `namespace` are not available
+- Public API types are generated from the source (`npm run build:types`) -
+  there is no hand-written declaration file to update
+- Use meaningful variable and function names; keep functions small and focused
+
+```typescript
 /**
  * Shows the sheet with animation
  * @fires show.bs.sheet
- * @returns {void}
  */
-show() {
+show(): void {
   // Implementation
 }
 ```
 
 #### Sass/CSS
 
-- Follow BEM naming convention for new classes
+- Follow the Bootstrap component naming convention: a flat block class with
+  dash-separated element classes, matching Bootstrap's own components
+  (`.modal`, `.modal-header`)
 - Use Sass variables for customizable values
 - Keep specificity low
 - Mobile-first approach
 
 ```scss
 .sheet {
-  &__header {
-    // Header styles
-  }
+  // Block styles
+}
 
-  &--large {
-    // Modifier styles
-  }
+.sheet-header {
+  // Element styles
 }
 ```
 
@@ -151,15 +160,17 @@ git commit -m "docs: update installation instructions"
 npm test
 
 # Run tests in watch mode
-npm run test:watch
+npm run test:unit:watch
 
 # Run tests with coverage
-npm run test:coverage
+npm run test:unit:coverage
 ```
 
 #### Writing Tests
 
 - Write tests for all new features
+- Tests are plain JavaScript and exercise the component through its public
+  API - internal refactoring must not require rewriting them
 - Maintain test coverage above 90%
 - Test edge cases and error conditions
 - Use descriptive test names
@@ -231,10 +242,12 @@ describe('BootstrapSheet', () => {
 
 Releases are managed by maintainers:
 
-1. Update version: `npm version [patch|minor|major]`
-2. Update CHANGELOG.md
-3. Create GitHub release
-4. Publish to npm: `npm publish`
+1. Update CHANGELOG.md with the new version section
+2. Bump the version on `main`: `npm version [patch|minor|major]` - this also
+   syncs the version across README, sources, and docs
+3. Push with the tag: `git push origin main --follow-tags`
+4. The tag push triggers the release workflow: tests, a GitHub Release with
+   changelog notes and build artifacts, and npm publishing
 
 ## Getting Help
 
