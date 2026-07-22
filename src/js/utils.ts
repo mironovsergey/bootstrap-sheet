@@ -1,7 +1,29 @@
 /**
+ * Value produced by parsing a data attribute
+ */
+export type AttributeValue = boolean | null | number | string;
+
+/**
+ * Physical spring constants (produced by `springParameters`)
+ */
+export interface SpringParams {
+  stiffness: number;
+  damping: number;
+  mass: number;
+}
+
+/**
+ * Current spring state
+ */
+export interface SpringState {
+  position: number;
+  velocity: number;
+}
+
+/**
  * Parse data attribute value to appropriate JavaScript type
- * @param {string} value - The attribute value to parse
- * @returns {boolean|null|number|string} The parsed value
+ * @param value - The attribute value to parse
+ * @returns The parsed value
  * @example
  * parseAttributeValue('true'); // returns true (boolean)
  * parseAttributeValue('false'); // returns false (boolean)
@@ -10,7 +32,7 @@
  * parseAttributeValue('45.67'); // returns 45.67 (number)
  * parseAttributeValue('some string'); // returns 'some string' (string)
  */
-export const parseAttributeValue = (value) => {
+export const parseAttributeValue = (value: string): AttributeValue => {
   if (value === 'true') {
     return true;
   }
@@ -32,31 +54,30 @@ export const parseAttributeValue = (value) => {
 
 /**
  * Extract data attributes from an element with a given prefix
- * @param {Element} element - The DOM element to extract data attributes from
- * @param {string} [prefix='bs'] - The data attribute prefix (without 'data-')
- * @returns {Object} Object with camelCase keys and parsed values
+ * @param element - The DOM element to extract data attributes from
+ * @param prefix - The data attribute prefix (without 'data-')
+ * @returns Object with camelCase keys and parsed values
  * @example
  * // Given an element <div data-bs-backdrop="true"></div>
  * extractDataAttributes(element);
  * // Returns: { backdrop: true }
  */
-export const extractDataAttributes = (element, prefix = 'bs') => {
-  if (!(element instanceof Element)) {
+export const extractDataAttributes = (
+  element: unknown,
+  prefix = 'bs',
+): Record<string, AttributeValue> => {
+  if (!(element instanceof HTMLElement) && !(element instanceof SVGElement)) {
     return {};
   }
 
   const { dataset } = element;
 
-  if (!dataset) {
-    return {};
-  }
-
-  const attributes = {};
+  const attributes: Record<string, AttributeValue> = {};
   const normalizedPrefix = prefix.toLowerCase();
   const prefixLength = normalizedPrefix.length;
 
   for (const [dataKey, dataValue] of Object.entries(dataset)) {
-    if (!dataKey.toLowerCase().startsWith(normalizedPrefix)) {
+    if (dataValue === undefined || !dataKey.toLowerCase().startsWith(normalizedPrefix)) {
       continue;
     }
 
@@ -76,15 +97,17 @@ export const extractDataAttributes = (element, prefix = 'bs') => {
 
 /**
  * Resolve an element from a selector or an element reference
- * @param {Element|string} elementOrSelector - Element or CSS selector
- * @param {Document|Element} [context=document] - Context for querySelector
- * @throws {Error} If elementOrSelector is invalid
- * @returns {Element|null} Resolved element or null
+ * @param elementOrSelector - Element or CSS selector
+ * @param context - Context for querySelector
+ * @returns Resolved element or null
  * @example
  * resolveElement('#myElement'); // returns the element with ID 'myElement'
  * resolveElement(someElement); // returns someElement if it's an Element
  */
-export const resolveElement = (elementOrSelector, context = document) => {
+export const resolveElement = (
+  elementOrSelector: Element | string | null | undefined,
+  context: Document | Element = document,
+): Element | null => {
   if (!elementOrSelector) {
     return null;
   }
@@ -106,23 +129,23 @@ export const resolveElement = (elementOrSelector, context = document) => {
 
 /**
  * Clamp a number between a minimum and maximum value
- * @param {number} value - The value to clamp
- * @param {number} min - The minimum value
- * @param {number} max - The maximum value
- * @returns {number} The clamped value
+ * @param value - The value to clamp
+ * @param min - The minimum value
+ * @param max - The maximum value
+ * @returns The clamped value
  * @example
  * clamp(5, 1, 10); // returns 5
  * clamp(0, 1, 10); // returns 1
  * clamp(15, 1, 10); // returns 10
  */
-export const clamp = (value, min, max) => {
+export const clamp = (value: number, min: number, max: number): number => {
   return Math.max(min, Math.min(max, value));
 };
 
 /**
  * Extract target selector from trigger element
- * @param {Element} element - The trigger element
- * @returns {string|null} Target selector or null
+ * @param element - The trigger element
+ * @returns Target selector or null
  * @example
  * // Given an element <a data-bs-target="#mySheet"></a>
  * extractTargetSelector(element); // returns '#mySheet'
@@ -133,7 +156,7 @@ export const clamp = (value, min, max) => {
  * // Given an element <a href="https://example.com/page"></a>
  * extractTargetSelector(element); // returns null
  */
-export const extractTargetSelector = (element) => {
+export const extractTargetSelector = (element: unknown): string | null => {
   if (!(element instanceof Element)) {
     return null;
   }
@@ -161,11 +184,11 @@ export const extractTargetSelector = (element) => {
 
 /**
  * Calculate scrollbar width by creating a temporary element
- * @returns {number} Scrollbar width in pixels
+ * @returns Scrollbar width in pixels
  * @example
  * const scrollbarWidth = getScrollbarWidth(); // e.g., returns 15
  */
-export const getScrollbarWidth = () => {
+export const getScrollbarWidth = (): number => {
   if (!document.body) {
     return 0;
   }
@@ -189,8 +212,8 @@ export const getScrollbarWidth = () => {
 
 /**
  * Get the type of a value as a lowercase string
- * @param {any} value - Any value
- * @returns {string} Type name (e.g., 'string', 'number', 'array')
+ * @param value - Any value
+ * @returns Type name (e.g. 'string', 'number', 'array')
  * @example
  * getValueType(123); // returns 'number'
  * getValueType('hello'); // returns 'string'
@@ -199,21 +222,21 @@ export const getScrollbarWidth = () => {
  * getValueType(null); // returns 'null'
  * getValueType(undefined); // returns 'undefined'
  */
-export const getValueType = (value) => {
+export const getValueType = (value: unknown): string => {
   return Object.prototype.toString.call(value).slice(8, -1).toLowerCase();
 };
 
 /**
  * Parse a type string into an array of allowed types
- * @param {string} types - Type string like "(string|number)"
- * @returns {string[]} Array of allowed type names
+ * @param types - Type string like "(string|number)"
+ * @returns Array of allowed type names
  * @example
  * parseExpectedTypes('(string|number)'); // returns ['string', 'number']
  * parseExpectedTypes('boolean'); // returns ['boolean']
  * parseExpectedTypes('(array|object|null)'); // returns ['array', 'object', 'null']
  * parseExpectedTypes(''); // returns []
  */
-export const parseExpectedTypes = (types) => {
+export const parseExpectedTypes = (types: string): string[] => {
   return types
     .replace(/\s+/g, '')
     .replace(/^\(|\)$/g, '')
@@ -222,10 +245,15 @@ export const parseExpectedTypes = (types) => {
 };
 
 /**
- * Validate configuration object against type definitions
- * @param {string} componentName - Component name for error messages
- * @param {Object} config - Configuration object to validate
- * @param {Object} configTypes - Type definitions
+ * Validate configuration object against type definitions.
+ *
+ * Acts as an assertion function: when it returns without throwing, every
+ * property listed in `configTypes` is runtime-proven to match its declared
+ * type, so the config can be treated as `T` from that point on.
+ *
+ * @param componentName - Component name for error messages
+ * @param config - Configuration object to validate
+ * @param configTypes - Type definitions
  * @throws {TypeError} If a config property has an invalid type
  * @example
  * const config = { backdrop: true };
@@ -236,12 +264,12 @@ export const parseExpectedTypes = (types) => {
  * validateConfigTypes('Sheet', invalidConfig, configTypes);
  * // Throws TypeError: [Sheet] Option "backdrop" has invalid type: expected boolean, but received string.
  */
-export const validateConfigTypes = (componentName, config = {}, configTypes = {}) => {
-  for (const propertyName in configTypes) {
-    if (!Object.prototype.hasOwnProperty.call(configTypes, propertyName)) {
-      continue;
-    }
-
+export function validateConfigTypes<T>(
+  componentName: string,
+  config: Record<string, unknown> = {},
+  configTypes: Record<string, string> = {},
+): asserts config is Record<string, unknown> & T {
+  for (const propertyName of Object.keys(configTypes)) {
     const expectedTypes = configTypes[propertyName];
     const actualValue = config[propertyName];
 
@@ -260,12 +288,12 @@ export const validateConfigTypes = (componentName, config = {}, configTypes = {}
       );
     }
   }
-};
+}
 
 /**
  * Get the vertical translation (Y-axis) of a DOM element
- * @param {Element} element - The DOM element to measure
- * @returns {number} The vertical translation in pixels
+ * @param element - The DOM element to measure
+ * @returns The vertical translation in pixels
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/DOMMatrix}
  * @example
  * // Given an element with transform: translateY(100px);
@@ -274,7 +302,7 @@ export const validateConfigTypes = (componentName, config = {}, configTypes = {}
  * // Given an element with no transform
  * const translateY = getTranslateY(someElement); // returns 0
  */
-export const getTranslateY = (element) => {
+export const getTranslateY = (element: unknown): number => {
   if (!(element instanceof Element)) {
     return 0;
   }
@@ -305,13 +333,13 @@ export const getTranslateY = (element) => {
  * Formula: b = (1 - 1 / (x * c / d + 1)) * d
  * Equivalent: b = (x * d * c) / (d + c * x)
  *
- * @param {number} offset - How far past the boundary (must be >= 0)
- * @param {number} dimension - Reference dimension (sheet height)
- * @param {number} coefficient - Resistance coefficient (Apple uses 0.55)
- * @returns {number} Displayed offset (always >= 0, always < dimension)
+ * @param offset - How far past the boundary (must be >= 0)
+ * @param dimension - Reference dimension (sheet height)
+ * @param coefficient - Resistance coefficient (Apple uses 0.55)
+ * @returns Displayed offset (always >= 0, always < dimension)
  * @see {@link https://gist.github.com/originell/6961057} Analysis of Apple's rubber band scrolling
  */
-export const rubberBand = (offset, dimension, coefficient) => {
+export const rubberBand = (offset: number, dimension: number, coefficient: number): number => {
   if (offset === 0 || dimension === 0) {
     return 0;
   }
@@ -330,11 +358,11 @@ export const rubberBand = (offset, dimension, coefficient) => {
  * - `stiffness = (2π / response)²`
  * - `damping = 4π · dampingRatio / response`
  *
- * @param {number} dampingRatio - Damping ratio (1.0 = critically damped, 0.8 = slight bounce)
- * @param {number} response - Response time in seconds (0.4 is a good default)
- * @returns {{ stiffness: number, damping: number, mass: number }} Physical spring constants
+ * @param dampingRatio - Damping ratio (1.0 = critically damped, 0.8 = slight bounce)
+ * @param response - Response time in seconds (0.4 is a good default)
+ * @returns Physical spring constants
  */
-export const springParameters = (dampingRatio, response) => {
+export const springParameters = (dampingRatio: number, response: number): SpringParams => {
   return {
     stiffness: Math.pow((2 * Math.PI) / response, 2),
     damping: (4 * Math.PI * dampingRatio) / response,
@@ -349,18 +377,18 @@ export const springParameters = (dampingRatio, response) => {
  * and the velocity are below the given threshold. Using 0.5px as the default
  * threshold matches Apple's behavior - sub-pixel movements are imperceptible.
  *
- * @param {{ position: number, velocity: number }} state - Current spring state
- * @param {number} target - Target position
- * @param {number} [positionThreshold=0.5] - Maximum distance from target (px)
- * @param {number} [velocityThreshold=0.5] - Maximum velocity (px/s)
- * @returns {boolean} True if the spring has settled
+ * @param state - Current spring state
+ * @param target - Target position
+ * @param positionThreshold - Maximum distance from target (px)
+ * @param velocityThreshold - Maximum velocity (px/s)
+ * @returns True if the spring has settled
  */
 export const isSpringSettled = (
-  state,
-  target,
+  state: SpringState,
+  target: number,
   positionThreshold = 0.5,
   velocityThreshold = 0.5,
-) => {
+): boolean => {
   return (
     Math.abs(state.position - target) < positionThreshold &&
     Math.abs(state.velocity) < velocityThreshold
@@ -381,11 +409,11 @@ export const isSpringSettled = (
  * The exact integral formula is `-v₀ / (1000 · ln(d))`, which differs from
  * Apple's published approximation by less than 1%.
  *
- * @param {number} velocity - Release velocity in px/s (positive = downward)
- * @param {number} decelerationRate - Deceleration rate (0–1, higher = more coasting)
- * @returns {number} Projected displacement in px (same sign as velocity)
+ * @param velocity - Release velocity in px/s (positive = downward)
+ * @param decelerationRate - Deceleration rate (0–1, higher = more coasting)
+ * @returns Projected displacement in px (same sign as velocity)
  */
-export const projectDisplacement = (velocity, decelerationRate) => {
+export const projectDisplacement = (velocity: number, decelerationRate: number): number => {
   return ((velocity / 1000) * decelerationRate) / (1 - decelerationRate);
 };
 
@@ -401,13 +429,18 @@ export const projectDisplacement = (velocity, decelerationRate) => {
  *   ζ ≈ 1  critically damped - fastest non-oscillatory convergence
  *   ζ > 1  overdamped  - two real exponentials, slower than critical
  *
- * @param {{ position: number, velocity: number }} state - Current state
- * @param {number} target - Target position the spring pulls toward
- * @param {{ stiffness: number, damping: number, mass: number }} params - Spring constants
- * @param {number} dt - Time step in seconds (any positive value is stable)
- * @returns {{ position: number, velocity: number }} Exact state at t + dt
+ * @param state - Current state
+ * @param target - Target position the spring pulls toward
+ * @param params - Spring constants
+ * @param dt - Time step in seconds (any positive value is stable)
+ * @returns Exact state at t + dt
  */
-export const solveSpring = (state, target, params, dt) => {
+export const solveSpring = (
+  state: SpringState,
+  target: number,
+  params: SpringParams,
+  dt: number,
+): SpringState => {
   const { position, velocity } = state;
   const { stiffness, damping, mass } = params;
 
@@ -459,6 +492,14 @@ export const solveSpring = (state, target, params, dt) => {
 };
 
 /**
+ * Sample recorded by the velocity tracker
+ */
+interface VelocitySample {
+  timestamp: number;
+  position: number;
+}
+
+/**
  * Windowed velocity tracker for touch/pointer gestures.
  *
  * iOS's UIPanGestureRecognizer computes velocity from recent touch samples
@@ -473,14 +514,14 @@ export const solveSpring = (state, target, params, dt) => {
  * - Uses event.timeStamp (backed by performance.now) for microsecond precision
  */
 export class VelocityTracker {
-  /** @type {{ timestamp: number, position: number }[]} */
-  #samples = [];
+  /** Recorded samples within the sliding window */
+  #samples: VelocitySample[] = [];
 
-  /** @type {number} Window size in milliseconds */
-  #windowMs;
+  /** Window size in milliseconds */
+  #windowMs: number;
 
   /**
-   * @param {number} [windowMs=100] - Time window for velocity calculation (ms)
+   * @param windowMs - Time window for velocity calculation (ms)
    */
   constructor(windowMs = 100) {
     this.#windowMs = windowMs;
@@ -492,11 +533,10 @@ export class VelocityTracker {
    * Old samples (older than 2× the window) are pruned to prevent
    * unbounded memory growth during long drag gestures.
    *
-   * @param {number} timestamp - Event timestamp in ms (use event.timeStamp)
-   * @param {number} position - Current position in px
-   * @returns {void}
+   * @param timestamp - Event timestamp in ms (use event.timeStamp)
+   * @param position - Current position in px
    */
-  addSample(timestamp, position) {
+  addSample(timestamp: number, position: number): void {
     this.#samples.push({ timestamp, position });
 
     // Prune samples older than 2× window to bound memory
@@ -512,10 +552,10 @@ export class VelocityTracker {
    * - Time delta between first and last sample is 0 (identical timestamps)
    * - The gesture has paused (no recent samples)
    *
-   * @param {number} currentTimestamp - Current time in ms (from pointerup event)
-   * @returns {number} Velocity in px/ms (positive = downward movement)
+   * @param currentTimestamp - Current time in ms (from pointerup event)
+   * @returns Velocity in px/ms (positive = downward movement)
    */
-  getVelocity(currentTimestamp) {
+  getVelocity(currentTimestamp: number): number {
     const cutoff = currentTimestamp - this.#windowMs;
     const recent = this.#samples.filter((s) => s.timestamp >= cutoff);
 
@@ -536,9 +576,8 @@ export class VelocityTracker {
 
   /**
    * Clear all recorded samples. Call when a new gesture begins.
-   * @returns {void}
    */
-  reset() {
+  reset(): void {
     this.#samples = [];
   }
 }

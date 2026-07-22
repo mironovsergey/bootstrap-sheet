@@ -7,7 +7,7 @@
   "unpkg": "dist/js/bootstrap-sheet.min.js",
   "style": "dist/css/bootstrap-sheet.css",
   "sass": "src/scss/bootstrap-sheet.scss",
-  "types": "src/types/index.d.ts",
+  "types": "dist/types/bootstrap-sheet.d.ts",
   "type": "module",
   "files": [
     "dist/",
@@ -17,7 +17,7 @@
   ],
   "exports": {
     ".": {
-      "types": "./src/types/index.d.ts",
+      "types": "./dist/types/bootstrap-sheet.d.ts",
       "import": "./dist/js/bootstrap-sheet.esm.js",
       "require": "./dist/js/bootstrap-sheet.js",
       "default": "./dist/js/bootstrap-sheet.js"
@@ -34,8 +34,9 @@
     "dev:js": "rollup -c -w",
     "dev:css": "sass src/scss/bootstrap-sheet.scss dist/css/bootstrap-sheet.css --watch",
     "dev:server": "ln -sfn ../dist docs/dist && http-server . -c-1 -o /docs/",
-    "build": "npm run clean && npm run build:js && npm run build:css",
+    "build": "npm run clean && npm run build:js && npm run build:css && npm run build:types",
     "build:js": "rollup -c",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:css": "npm run build:css:main && npm run build:css:min",
     "build:css:main": "sass src/scss/bootstrap-sheet.scss dist/css/bootstrap-sheet.css --style=expanded",
     "build:css:min": "sass src/scss/bootstrap-sheet.scss dist/css/bootstrap-sheet.min.css --style=compressed",
@@ -47,8 +48,9 @@
     "test:unit:verbose": "jest --verbose",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"src/**/*.{js,scss}\" \"tests/**/*.js\"",
-    "format:check": "prettier --check \"src/**/*.{js,scss}\" \"tests/**/*.js\"",
+    "check:types": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{js,ts,scss}\" \"tests/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.{js,ts,scss}\" \"tests/**/*.js\"",
     "prepublishOnly": "npm run build && npm run test:unit",
     "prepare": "husky",
     "version": "npm run version:update && git add -A",
@@ -62,6 +64,12 @@
       "eslint --fix",
       "prettier --write",
       "jest --bail --findRelatedTests --passWithNoTests"
+    ],
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write",
+      "jest --bail --findRelatedTests --passWithNoTests",
+      "bash -c 'npm run check:types'"
     ],
     "*.{json,md,yml,yaml}": [
       "prettier --write"
@@ -116,6 +124,7 @@
   "devDependencies": {
     "@babel/core": "^7.28.4",
     "@babel/preset-env": "^7.28.3",
+    "@babel/preset-typescript": "^7.29.7",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@eslint/js": "^9.36.0",
@@ -125,7 +134,7 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "babel-jest": "^30.2.0",
-    "concurrently": "^10.0.3",
+    "concurrently": "^9.2.4",
     "eslint": "^9.36.0",
     "globals": "^16.4.0",
     "http-server": "^14.1.1",
@@ -136,7 +145,9 @@
     "prettier": "^3.6.2",
     "rimraf": "^6.0.1",
     "rollup": "^4.52.0",
-    "sass": "^1.93.0"
+    "sass": "^1.93.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.65.0"
   },
   "engines": {
     "node": ">=22.20.0",

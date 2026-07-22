@@ -12,7 +12,7 @@ const banner = `/*!
 export default [
   // UMD build
   {
-    input: 'src/js/bootstrap-sheet.js',
+    input: 'src/js/bootstrap-sheet.ts',
     output: {
       file: 'dist/js/bootstrap-sheet.js',
       format: 'umd',
@@ -24,16 +24,17 @@ export default [
     },
     external: ['bootstrap'],
     plugins: [
-      nodeResolve(),
+      nodeResolve({ extensions: ['.js', '.ts'] }),
       babel({
         babelHelpers: 'bundled',
-        presets: ['@babel/preset-env'],
+        presets: ['@babel/preset-env', '@babel/preset-typescript'],
+        extensions: ['.js', '.ts'],
       }),
     ],
   },
   // UMD minified
   {
-    input: 'src/js/bootstrap-sheet.js',
+    input: 'src/js/bootstrap-sheet.ts',
     output: {
       file: 'dist/js/bootstrap-sheet.min.js',
       format: 'umd',
@@ -45,17 +46,18 @@ export default [
     },
     external: ['bootstrap'],
     plugins: [
-      nodeResolve(),
+      nodeResolve({ extensions: ['.js', '.ts'] }),
       babel({
         babelHelpers: 'bundled',
-        presets: ['@babel/preset-env'],
+        presets: ['@babel/preset-env', '@babel/preset-typescript'],
+        extensions: ['.js', '.ts'],
       }),
       terser(),
     ],
   },
   // ESM build
   {
-    input: 'src/js/bootstrap-sheet.js',
+    input: 'src/js/bootstrap-sheet.ts',
     output: {
       file: 'dist/js/bootstrap-sheet.esm.js',
       format: 'es',
@@ -63,10 +65,11 @@ export default [
     },
     external: ['bootstrap'],
     plugins: [
-      nodeResolve(),
+      nodeResolve({ extensions: ['.js', '.ts'] }),
       babel({
         babelHelpers: 'bundled',
-        presets: ['@babel/preset-env'],
+        presets: ['@babel/preset-env', '@babel/preset-typescript'],
+        extensions: ['.js', '.ts'],
       }),
     ],
   },

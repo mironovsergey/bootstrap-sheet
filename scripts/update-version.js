@@ -21,7 +21,7 @@ const filesToUpdate = [
     replacements: [`Bootstrap Sheet v${version}`, `badge/version-v${version}`, `tag/v${version}`],
   },
   {
-    path: 'src/js/bootstrap-sheet.js',
+    path: 'src/js/bootstrap-sheet.ts',
     patterns: [/@version \d+\.\d+\.\d+/g],
     replacements: [`@version ${version}`],
   },

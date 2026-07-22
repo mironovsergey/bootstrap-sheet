@@ -90,26 +90,20 @@ export const RUBBER_BAND_COEFFICIENT = 0.55;
 export const DECELERATION_RATE = 0.998;
 
 /**
- * Default configuration options for BootstrapSheet
+ * Public configuration options for BootstrapSheet
  */
-export const Default = {
-  // ==================== UI ====================
+export interface BootstrapSheetOptions {
+  /** Includes a backdrop element. Use 'static' for a backdrop that doesn't close the sheet */
+  backdrop?: boolean | 'static';
 
-  /** Enable/disable backdrop. Can be true, false, or 'static' */
-  backdrop: true,
+  /** Closes the sheet when the Escape key is pressed */
+  keyboard?: boolean;
 
-  /** Enable/disable keyboard (ESC) support */
-  keyboard: true,
+  /** Puts focus on the sheet when shown and traps focus within it */
+  focus?: boolean;
 
-  /** Enable/disable focus trap */
-  focus: true,
-
-  // ==================== Gestures ====================
-
-  /** Enable/disable swipe gestures */
-  gestures: true,
-
-  // ==================== Spring animation ====================
+  /** Enables swipe gestures */
+  gestures?: boolean;
 
   /**
    * Damping ratio for spring animation.
@@ -118,7 +112,7 @@ export const Default = {
    * - < 1.0 = underdamped (bouncy)
    * @since 0.2.0
    */
-  springDampingRatio: 0.8,
+  springDampingRatio?: number;
 
   /**
    * Response time for spring animation in seconds.
@@ -126,13 +120,30 @@ export const Default = {
    * Converted to stiffness via: stiffness = (2π / response)²
    * @since 0.2.0
    */
+  springResponse?: number;
+}
+
+/**
+ * Configuration with every option resolved (defaults merged with user input)
+ */
+export type ResolvedSheetOptions = Required<BootstrapSheetOptions>;
+
+/**
+ * Default configuration options for BootstrapSheet
+ */
+export const Default: ResolvedSheetOptions = {
+  backdrop: true,
+  keyboard: true,
+  focus: true,
+  gestures: true,
+  springDampingRatio: 0.8,
   springResponse: 0.4,
 };
 
 /**
  * Types of configuration options for validation
  */
-export const DefaultType = {
+export const DefaultType: Record<keyof BootstrapSheetOptions, string> = {
   backdrop: '(boolean|string)',
   keyboard: 'boolean',
   focus: 'boolean',

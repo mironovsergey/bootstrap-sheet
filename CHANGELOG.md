@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-22
+
+### Removed
+
+**The eight options deprecated in v0.2.0 have been removed**, together with the deprecation warning mechanism: `swipeThreshold`, `velocityThreshold`, `minCloseDistance`, `closeThresholdRatio`, `animationDuration`, `projectionTime`, `dragResistanceUp`, `dragResistanceDown`.
+
+These options have had no effect since the v0.2.0 engine rewrite - they were only accepted for backward compatibility and produced a console warning promising removal in this release.
+
+**Migration:** remove these options from your JavaScript configuration and `data-bs-*` attributes; use `springDampingRatio` and `springResponse` to tune gesture and animation feel. Passing a removed option is now silently ignored (standard Bootstrap behavior for unknown options) instead of producing a console warning. For TypeScript consumers the removed options are no longer part of `BootstrapSheetOptions`, so passing one is a compile-time error.
+
+### Changed
+
+**The codebase is now TypeScript (strict mode), decomposed into focused modules.**
+
+The single component file has been split into five helper modules, mirroring Bootstrap's own `util/` decomposition: backdrop lifecycle, body scrollbar compensation, focus trap + inert management, a DOM-agnostic spring animation driver, and a drag controller that owns pointer input and gesture physics. The drag controller is the foundation for whole-root dragging and detents planned for upcoming releases.
+
+The public API, DOM structure, class names, events, and physics behavior are unchanged - the entire v0.2.0 test suite passes without modifications. The build pipeline is also unchanged (Babel strips types; browser targets are identical), so the distributed bundles are functionally equivalent to a plain JavaScript build.
+
+**Type declarations are now generated from the source.**
+
+The hand-written `src/types/index.d.ts` has been replaced by declarations generated with `tsc` into `dist/types/`, referenced by the package `types` field. Declarations can no longer drift from the implementation. Practical improvements for TypeScript consumers:
+
+- JSDoc descriptions on every public member, visible in editor hints
+- Option values are type-checked: `BootstrapSheetOptions` is exported from the package root, and `BootstrapSheet.Default` is fully typed
+- Declaration maps are included, so "Go to Definition" lands in the actual TypeScript source shipped with the package
+
+---
+
 ## [0.2.0] - 2026-05-07
 
 ### Added
@@ -96,5 +124,6 @@ The following options now emit a console warning and will be removed in v0.3.0. 
 - Static backdrop mode for confirmations
 - Customizable animation duration
 
+[0.3.0]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mironovsergey/bootstrap-sheet/releases/tag/v0.1.0

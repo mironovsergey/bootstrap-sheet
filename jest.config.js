@@ -6,7 +6,7 @@ export default {
   setupFilesAfterEnv: ['<rootDir>/tests/setup/jest.setup.js'],
 
   // Coverage configuration
-  collectCoverageFrom: ['src/js/**/*.js', '!src/js/**/*.test.js', '!**/node_modules/**'],
+  collectCoverageFrom: ['src/js/**/*.{js,ts}', '!src/js/**/*.test.{js,ts}', '!**/node_modules/**'],
 
   coverageThreshold: {
     global: {
@@ -26,11 +26,11 @@ export default {
 
   // Transform configuration
   transform: {
-    '^.+\\.js$': 'babel-jest',
+    '^.+\\.[jt]s$': 'babel-jest',
   },
 
   // Test match patterns
-  testMatch: ['<rootDir>/tests/**/*.test.js'],
+  testMatch: ['<rootDir>/tests/**/*.test.{js,ts}'],
 
   // Verbose output
   verbose: true,
