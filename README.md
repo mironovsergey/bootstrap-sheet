@@ -35,6 +35,7 @@ Touch-friendly bottom sheet component for Bootstrap 5 - supports physics-based s
   - [Methods](#methods)
   - [Properties](#properties)
   - [Events](#events)
+  - [TypeScript](#typescript)
   - [Sass variables](#sass-variables)
   - [Accessibility](#accessibility)
   - [Contributing](#contributing)
@@ -229,6 +230,29 @@ document.getElementById('mySheet').addEventListener('slide.bs.sheet', (event) =>
 
 ---
 
+## TypeScript
+
+The package ships type declarations generated from the source - no `@types`
+package is needed. The options interface is exported from the package root:
+
+```typescript
+import BootstrapSheet from 'bootstrap-sheet';
+import type { BootstrapSheetOptions } from 'bootstrap-sheet';
+
+const options: BootstrapSheetOptions = {
+  backdrop: 'static',
+  springDampingRatio: 1,
+};
+
+const sheet = BootstrapSheet.getOrCreateInstance('#mySheet', options);
+```
+
+Option values are type-checked (for example, `backdrop` accepts only
+`boolean` or `'static'`), and declaration maps are included, so
+"Go to Definition" in your editor lands in the actual TypeScript source.
+
+---
+
 ## Sass variables
 
 Customize the appearance by overriding these Sass variables:
@@ -304,7 +328,7 @@ Bootstrap Sheet follows [Semantic Versioning](https://semver.org/). For availabl
 
 ## License
 
-Code and documentation © 2025 [Sergey Mironov](https://github.com/mironovsergey)
+Code and documentation © 2025–2026 [Sergey Mironov](https://github.com/mironovsergey)
 
 Code released under the [MIT License](https://github.com/mironovsergey/bootstrap-sheet/blob/main/LICENSE)
 
