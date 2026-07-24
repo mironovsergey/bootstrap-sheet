@@ -176,26 +176,35 @@ export class InertManager {
   #inertedNodes = new Map<Element, InertState>();
 
   /**
-   * Apply inert (or aria-hidden) to all body children except the given ones
+   * Apply inert (or aria-hidden) to everything outside the given elements.
+   *
+   * Walks from each excluded element up to `<body>`, hiding its siblings at
+   * every level. Hiding only the children of `<body>` would be enough for a
+   * sheet authored as a direct child of `<body>`, but not for one nested in an
+   * app root or a wrapper component: there the wrapper itself would be hidden,
+   * and since `inert` is inherited, the sheet would go inert along with it.
    * @param excluded - Elements to leave interactive (e.g. sheet and backdrop)
    */
   apply(excluded: readonly (Element | null | undefined)[]): void {
-    const bodyChildren = Array.from(document.body.children);
+    const kept = excluded.filter((element): element is Element => element != null);
 
-    for (const node of bodyChildren) {
-      if (excluded.includes(node)) {
-        continue;
-      }
+    for (const element of kept) {
+      let node: Element = element;
 
-      if (SUPPORTS_INERT && node instanceof HTMLElement) {
-        this.#inertedNodes.set(node, { kind: 'inert', value: node.inert });
-        node.inert = true;
-      } else {
-        this.#inertedNodes.set(node, {
-          kind: 'aria-hidden',
-          value: node.getAttribute('aria-hidden'),
-        });
-        node.setAttribute('aria-hidden', 'true');
+      while (node !== document.body && node.parentElement !== null) {
+        const parent = node.parentElement;
+
+        for (const sibling of Array.from(parent.children)) {
+          // `contains` reports an element as containing itself, so this keeps
+          // the excluded elements and every ancestor on the way up to `<body>`
+          if (kept.some((keptElement) => sibling.contains(keptElement))) {
+            continue;
+          }
+
+          this.#hide(sibling);
+        }
+
+        node = parent;
       }
     }
   }
@@ -221,5 +230,30 @@ export class InertManager {
     }
 
     this.#inertedNodes.clear();
+  }
+
+  /**
+   * Hide a single node, remembering the state it had beforehand.
+   *
+   * A node reachable from more than one excluded element must keep the state
+   * recorded on the first visit: recording it again would capture the already
+   * hidden state, and `remove()` would then never restore it.
+   * @param node - The node to hide
+   */
+  #hide(node: Element): void {
+    if (this.#inertedNodes.has(node)) {
+      return;
+    }
+
+    if (SUPPORTS_INERT && node instanceof HTMLElement) {
+      this.#inertedNodes.set(node, { kind: 'inert', value: node.inert });
+      node.inert = true;
+    } else {
+      this.#inertedNodes.set(node, {
+        kind: 'aria-hidden',
+        value: node.getAttribute('aria-hidden'),
+      });
+      node.setAttribute('aria-hidden', 'true');
+    }
   }
 }

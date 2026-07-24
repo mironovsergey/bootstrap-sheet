@@ -711,6 +711,108 @@ describe('BootstrapSheet - Focus Management', () => {
     });
   });
 
+  describe('Background inerting', () => {
+    // jsdom implements neither `inert` nor its inheritance, so the component
+    // takes the aria-hidden branch here. Both branches pick their nodes the
+    // same way, which is what these tests are about.
+    const isHidden = (element) =>
+      element.hasAttribute('inert') || element.getAttribute('aria-hidden') === 'true';
+
+    /**
+     * Create a sheet nested inside a wrapper element, the way a framework
+     * renders it into an app root
+     * @param {Object} options - Options forwarded to createSheet
+     * @returns {Object} The wrapper and the sheet
+     */
+    const createNestedSheet = (options = {}) => {
+      const wrapper = document.createElement('div');
+      wrapper.id = 'app';
+      document.body.appendChild(wrapper);
+
+      const sheet = createSheet(options);
+      wrapper.appendChild(sheet);
+
+      return { wrapper, sheet };
+    };
+
+    test('should not hide an ancestor of the sheet', async () => {
+      const { wrapper, sheet } = createNestedSheet();
+      const instance = new BootstrapSheet(sheet, { backdrop: true });
+
+      instance.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      // Hiding the wrapper would take the sheet with it: `inert` is inherited
+      expect(isHidden(wrapper)).toBe(false);
+      expect(sheet.closest('[inert], [aria-hidden="true"]')).toBeNull();
+    });
+
+    test('should hide content outside the wrapper of a nested sheet', async () => {
+      const outside = document.createElement('main');
+      document.body.appendChild(outside);
+
+      const { sheet } = createNestedSheet();
+      const instance = new BootstrapSheet(sheet, { backdrop: true });
+
+      instance.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      expect(isHidden(outside)).toBe(true);
+    });
+
+    test('should hide siblings of a nested sheet inside its own wrapper', async () => {
+      const { wrapper, sheet } = createNestedSheet();
+
+      const neighbour = document.createElement('div');
+      neighbour.innerHTML = '<button type="button">Behind the sheet</button>';
+      wrapper.appendChild(neighbour);
+
+      const instance = new BootstrapSheet(sheet, { backdrop: true });
+
+      instance.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      expect(isHidden(neighbour)).toBe(true);
+    });
+
+    test('should restore nodes reachable from both the sheet and the backdrop', async () => {
+      // A node hidden while walking up from the sheet is met a second time
+      // while walking up from the backdrop. If the second visit overwrote the
+      // recorded state, it would capture the already hidden one and the node
+      // would stay hidden forever.
+      const outside = document.createElement('main');
+      document.body.appendChild(outside);
+
+      const { sheet } = createNestedSheet();
+      const instance = new BootstrapSheet(sheet, { backdrop: true });
+
+      instance.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      expect(isHidden(outside)).toBe(true);
+
+      instance.hide();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      expect(isHidden(outside)).toBe(false);
+      expect(outside.hasAttribute('aria-hidden')).toBe(false);
+    });
+
+    test('should still hide siblings of a sheet placed directly in the body', async () => {
+      const outside = document.createElement('main');
+      document.body.appendChild(outside);
+
+      const sheet = createSheet();
+      const instance = new BootstrapSheet(sheet, { backdrop: true });
+
+      instance.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      expect(isHidden(outside)).toBe(true);
+      expect(isHidden(sheet)).toBe(false);
+    });
+  });
+
   describe('Integration with other features', () => {
     test('should work with keyboard dismiss', async () => {
       const button = document.createElement('button');

@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-07-24
+
+### Fixed
+
+**A sheet nested inside a wrapper element made itself inert when opened.**
+
+While a sheet is open, everything outside it is hidden from assistive technology using the native `inert` attribute, with an `aria-hidden` fallback. The implementation walked the children of `<body>` and skipped the sheet and the backdrop by identity, which silently assumed the sheet was itself a direct child of `<body>`. When it was not - rendered into an app root such as `<div id="app">`, or wrapped by a component - the wrapper matched none of the excluded elements and was hidden along with the rest of the page. Because `inert` is inherited, the sheet inside it went inert too: the whole sheet became unclickable and unfocusable, dropped out of the tab order and disappeared from assistive technology, all while remaining fully visible and animating normally.
+
+The failure was silent from the inside as well. The focus trap filters candidates by `!element.hasAttribute('inert')`, but the attribute sat on the wrapper rather than on the individual controls, so the trap saw a healthy list of focusable elements, called `focus()` on the first one, and the call quietly did nothing.
+
+Hiding is now computed by walking from the sheet and the backdrop up to `<body>`, hiding siblings at every level instead of only at the top. Ancestors of the sheet stay interactive at any nesting depth, and a sheet authored as a direct child of `<body>` behaves exactly as before.
+
+**Note on behavior:** siblings of the sheet _inside its own wrapper_ are now hidden as well, where previously only children of `<body>` were touched. This is what a modal presentation calls for, but if you deliberately placed content next to the sheet inside a shared wrapper and expected it to stay reachable, that content is now hidden for as long as the sheet is open.
+
+---
+
 ## [0.3.0] - 2026-07-22
 
 ### Removed
@@ -124,6 +140,7 @@ The following options now emit a console warning and will be removed in v0.3.0. 
 - Static backdrop mode for confirmations
 - Customizable animation duration
 
+[0.3.1]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mironovsergey/bootstrap-sheet/releases/tag/v0.1.0
