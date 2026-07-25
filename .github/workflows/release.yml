@@ -92,6 +92,12 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
 
+    # OIDC trusted publishing: npm authenticates through a short-lived token
+    # minted from this job's identity, so no NPM_TOKEN is needed.
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -103,13 +109,17 @@ jobs:
           cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
+      # Node 22 ships npm 10; trusted publishing needs npm >= 11.5.1.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build project
         run: npm run build
 
+      # No token: npm detects the trusted publisher and authenticates via OIDC,
+      # and attaches a provenance attestation automatically.
       - name: Publish to npm
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
