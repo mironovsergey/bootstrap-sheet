@@ -1,6 +1,12 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
-import { EVENT, CLASS_NAME, SELECTOR } from '../../src/js/constants';
-import { createSheet, advanceTimersAndFlush, TRANSITION_WAIT } from '../setup/test-utils';
+import { EVENT, CLASS_NAME } from '../../src/js/constants';
+import {
+  createSheet,
+  advanceTimersAndFlush,
+  startDrag,
+  simulatePointerEvent,
+  TRANSITION_WAIT,
+} from '../setup/test-utils';
 
 describe('BootstrapSheet - Events', () => {
   describe(EVENT.SHOW, () => {
@@ -284,22 +290,12 @@ describe('BootstrapSheet - Events', () => {
       const slideSpy = jest.fn();
       sheet.addEventListener(EVENT.SLIDE, slideSpy);
 
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle = sheet.querySelector('.sheet-handle');
 
       // Simulate drag
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
+      const originY = startDrag(handle, { startY: 0, pointerId: 1 });
 
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 50,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
+      simulatePointerEvent(document, 'pointermove', { clientY: originY + 50 });
 
       jest.advanceTimersByTime(16); // Next animation frame
 
@@ -318,21 +314,11 @@ describe('BootstrapSheet - Events', () => {
         capturedEvent = event;
       });
 
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle = sheet.querySelector('.sheet-handle');
 
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
+      const originY = startDrag(handle, { startY: 0, pointerId: 1 });
 
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 50,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
+      simulatePointerEvent(document, 'pointermove', { clientY: originY + 50 });
 
       jest.advanceTimersByTime(16);
 
@@ -353,14 +339,9 @@ describe('BootstrapSheet - Events', () => {
       const slideSpy = jest.fn();
       sheet.addEventListener(EVENT.SLIDE, slideSpy);
 
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle = sheet.querySelector('.sheet-handle');
 
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
+      startDrag(handle, { startY: 0, pointerId: 1 });
 
       expect(slideSpy).not.toHaveBeenCalled();
     });
@@ -376,21 +357,11 @@ describe('BootstrapSheet - Events', () => {
         event.preventDefault();
       });
 
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle = sheet.querySelector('.sheet-handle');
 
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
+      const originY = startDrag(handle, { startY: 0, pointerId: 1 });
 
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 50,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
+      simulatePointerEvent(document, 'pointermove', { clientY: originY + 50 });
 
       jest.advanceTimersByTime(16);
 
@@ -506,21 +477,11 @@ describe('BootstrapSheet - Events', () => {
         capturedRatio = event.detail.ratio;
       });
 
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle = sheet.querySelector('.sheet-handle');
 
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
+      const originY = startDrag(handle, { startY: 0, pointerId: 1 });
 
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 100,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
+      simulatePointerEvent(document, 'pointermove', { clientY: originY + 100 });
 
       jest.advanceTimersByTime(16);
 

@@ -4,6 +4,7 @@ import {
   createSheet,
   createTrigger,
   advanceTimersAndFlush,
+  startDrag,
   TRANSITION_WAIT,
 } from '../setup/test-utils';
 
@@ -479,16 +480,10 @@ describe('BootstrapSheet - Declarative API', () => {
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle = sheet.querySelector('.sheet-handle');
       expect(handle).toBeInTheDocument();
 
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-
-      handle.dispatchEvent(pointerDown);
+      startDrag(handle, { startY: 0, pointerId: 1 });
 
       expect(sheet).toHaveClass('dragging');
     });
@@ -500,7 +495,7 @@ describe('BootstrapSheet - Declarative API', () => {
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle = sheet.querySelector('.sheet-handle');
       expect(handle).not.toBeInTheDocument();
 
       // No dragging should be possible
@@ -514,15 +509,9 @@ describe('BootstrapSheet - Declarative API', () => {
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle = sheet.querySelector('.sheet-handle');
 
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-
-      handle.dispatchEvent(pointerDown);
+      startDrag(handle, { startY: 0, pointerId: 1 });
 
       expect(sheet).not.toHaveClass('dragging');
     });

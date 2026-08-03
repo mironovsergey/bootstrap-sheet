@@ -32,6 +32,7 @@ Touch-friendly bottom sheet component for Bootstrap 5 - supports physics-based s
   - [Options](#options)
     - [UI Options](#ui-options)
     - [Gesture Options](#gesture-options)
+    - [Dragging and scrollable content](#dragging-and-scrollable-content)
   - [Methods](#methods)
   - [Properties](#properties)
   - [Events](#events)
@@ -114,7 +115,7 @@ Activate a sheet without writing JavaScript. Set `data-bs-toggle="sheet"` on a c
   data-bs-keyboard="true"
   data-bs-focus="true"
 >
-  <div class="sheet-handle" data-bs-drag="sheet"></div>
+  <div class="sheet-handle"></div>
   <div class="sheet-header">
     <h5 class="sheet-title">Sheet title</h5>
     <button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"></button>
@@ -166,13 +167,43 @@ Options can be passed via data attributes or JavaScript. For data attributes, ap
 
 Dismissal is driven by inertia projection: when the user releases the sheet, its velocity is projected forward using a deceleration curve. If the projected resting position exceeds 50% of the sheet height, the sheet closes; otherwise it snaps back. `springDampingRatio` and `springResponse` tune the feel of the snap-back and dismiss animations.
 
-> **Note:** Gesture handling requires a drag handle element inside the sheet: `<div data-bs-drag="sheet"></div>`. Without it, `gestures: true` has no effect.
+> **Note:** The whole sheet is draggable — no drag handle element is required. The `.sheet-handle` element is purely a visual grabber. (Before v0.4.0 dragging required `data-bs-drag="sheet"`; see [Dragging and scrollable content](#dragging-and-scrollable-content).)
 
 | Name                 | Type    | Default | Description                                                                                                            |
 | -------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `gestures`           | boolean | `true`  | Enable/disable swipe gestures.                                                                                         |
 | `springDampingRatio` | number  | `0.8`   | Damping ratio for the spring animation. `1.0` = no bounce (critically damped). Values below `1.0` add a subtle bounce. |
 | `springResponse`     | number  | `0.4`   | Response time of the spring in seconds. Lower values make the spring faster and snappier.                              |
+
+### Dragging and scrollable content
+
+A drag starts anywhere on the sheet once the pointer has travelled 8 px vertically. Below that threshold the gesture is a tap, so buttons, links and form controls inside the sheet keep working normally.
+
+When the gesture starts inside a scrollable element, the sheet decides once, at touch-down, who owns it:
+
+| Situation                                        | Result              |
+| ------------------------------------------------ | ------------------- |
+| Content is scrolled away from its top            | Content scrolls     |
+| Content is at its top and the gesture goes down  | Sheet drags         |
+| Content is at its top and the gesture goes up    | Content scrolls     |
+| Gesture is predominantly horizontal              | Left to the content |
+| Gesture starts within 100 ms of a content scroll | Content scrolls     |
+
+The decision holds for the whole gesture: the browser cannot hand a scroll back mid-gesture, so a gesture that began as a scroll stays a scroll until the finger lifts.
+
+**Opting out.** Mark any subtree that must not start a drag:
+
+```html
+<div class="sheet-body">
+  <div data-bs-drag="false">
+    <!-- swipeable carousel, signature pad, map... -->
+  </div>
+</div>
+```
+
+Elements that own a drag gesture of their own are excluded automatically: `input[type="range"]`, `[contenteditable]` and `[draggable="true"]`.
+
+**Custom scroll containers.** Give any scrollable element inside the sheet `overscroll-behavior: contain` so reaching its edge does not scroll the page behind it. The bundled `.sheet-body` already has it.
 
 ---
 
@@ -273,11 +304,9 @@ $sheet-backdrop-backdrop-filter: blur(2px) !default;
 
 // Handle
 $sheet-handle-bg: var(--bs-gray-400, #dee2e6) !default;
-$sheet-handle-hover-bg: var(--bs-gray-500, #adb5bd) !default;
 $sheet-handle-width: 3rem !default;
 $sheet-handle-height: 0.25rem !default;
 $sheet-handle-margin: 0.5rem auto !default;
-$sheet-handle-hit-area: 2rem !default;
 
 // Spacing
 $sheet-padding-x: 1rem !default;

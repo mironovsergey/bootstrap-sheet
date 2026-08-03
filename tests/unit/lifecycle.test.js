@@ -1,6 +1,11 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
-import { EVENT, CLASS_NAME, SELECTOR } from '../../src/js/constants';
-import { createSheet, advanceTimersAndFlush, TRANSITION_WAIT } from '../setup/test-utils';
+import { EVENT, CLASS_NAME } from '../../src/js/constants';
+import {
+  createSheet,
+  advanceTimersAndFlush,
+  startDrag,
+  TRANSITION_WAIT,
+} from '../setup/test-utils';
 
 describe('BootstrapSheet - Lifecycle', () => {
   describe('show()', () => {
@@ -275,10 +280,8 @@ describe('BootstrapSheet - Lifecycle', () => {
       jest.advanceTimersByTime(TRANSITION_WAIT);
 
       // Simulate drag start via pointer event to properly set isDragging state
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
-      handle.dispatchEvent(
-        new PointerEvent('pointerdown', { bubbles: true, clientY: 0, pointerId: 1 }),
-      );
+      const handle = sheet.querySelector('.sheet-handle');
+      startDrag(handle, { startY: 0, pointerId: 1 });
 
       expect(sheet).toHaveClass(CLASS_NAME.DRAGGING);
 
@@ -510,10 +513,8 @@ describe('BootstrapSheet - Lifecycle', () => {
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
       // Simulate drag start via pointer event to properly set isDragging state
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
-      handle.dispatchEvent(
-        new PointerEvent('pointerdown', { bubbles: true, clientY: 0, pointerId: 1 }),
-      );
+      const handle = sheet.querySelector('.sheet-handle');
+      startDrag(handle, { startY: 0, pointerId: 1 });
       expect(sheet).toHaveClass(CLASS_NAME.DRAGGING);
 
       instance.hide();

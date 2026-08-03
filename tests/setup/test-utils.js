@@ -5,6 +5,12 @@
 export const TRANSITION_WAIT = 350;
 
 /**
+ * Distance the pointer must travel before a gesture counts as a drag.
+ * Mirrors DRAG_SLOP in src/js/constants.ts.
+ */
+export const DRAG_SLOP = 8;
+
+/**
  * Create a basic sheet element
  * @param {Object} options - Configuration options
  * @returns {HTMLElement} Sheet element
@@ -16,6 +22,7 @@ export function createSheet(options = {}) {
     withBody = true,
     withFooter = false,
     withDragHandle = false,
+    legacyDragAttribute = false,
     dataAttributes = {},
   } = options;
 
@@ -35,7 +42,12 @@ export function createSheet(options = {}) {
     if (withDragHandle) {
       const handle = document.createElement('div');
       handle.className = 'sheet-handle';
-      handle.setAttribute('data-bs-drag', 'sheet');
+
+      // Deprecated since 0.4.0: kept only for tests covering the warning
+      if (legacyDragAttribute) {
+        handle.setAttribute('data-bs-drag', 'sheet');
+      }
+
       header.appendChild(handle);
     }
 
@@ -168,28 +180,81 @@ export function simulatePointerEvent(element, type, options = {}) {
 }
 
 /**
- * Simulate a complete swipe gesture
- * @param {HTMLElement} handle - Drag handle element
+ * Make an element look scrollable to the drag controller.
+ *
+ * jsdom performs no layout, so scrollHeight and clientHeight are always 0
+ * and have to be defined explicitly.
+ *
+ * @param {HTMLElement} element - Element to turn into a scroll container
+ * @param {Object} options - Scroll geometry
+ */
+export function makeScrollable(element, options = {}) {
+  const { scrollHeight = 1000, clientHeight = 300, scrollTop = 0 } = options;
+
+  element.style.overflowY = 'auto';
+
+  Object.defineProperty(element, 'scrollHeight', { configurable: true, value: scrollHeight });
+  Object.defineProperty(element, 'clientHeight', { configurable: true, value: clientHeight });
+  Object.defineProperty(element, 'scrollTop', {
+    configurable: true,
+    writable: true,
+    value: scrollTop,
+  });
+}
+
+/**
+ * Begin a drag by crossing the slop threshold.
+ *
+ * A gesture only becomes a drag once the pointer has travelled DRAG_SLOP on
+ * the Y axis, and displacement is then measured from that crossing point.
+ * Tests therefore need two moves to start moving the sheet; this helper does
+ * the first one and reports the coordinate the drag measures from.
+ *
+ * @param {HTMLElement} element - Element to start the gesture on
+ * @param {Object} options - Gesture options
+ * @returns {number} Y coordinate the drag measures displacement from
+ */
+export function startDrag(element, options = {}) {
+  const { startY = 0, clientX = 0, direction = 'down', pointerId = 1 } = options;
+
+  simulatePointerEvent(element, 'pointerdown', { clientX, clientY: startY, pointerId });
+
+  const originY = startY + (direction === 'up' ? -DRAG_SLOP : DRAG_SLOP);
+
+  simulatePointerEvent(document, 'pointermove', { clientX, clientY: originY, pointerId });
+
+  return originY;
+}
+
+/**
+ * Simulate a complete swipe gesture.
+ *
+ * The pointer additionally travels the slop distance before the drag begins,
+ * so the sheet is displaced by exactly `endY - startY`.
+ *
+ * @param {HTMLElement} element - Element to start the gesture on
  * @param {Object} options - Gesture options
  */
-export function simulateSwipe(handle, options = {}) {
+export function simulateSwipe(element, options = {}) {
   const { startY = 0, endY = 100, duration = 300, steps = 10 } = options;
 
-  // Start drag
-  simulatePointerEvent(handle, 'pointerdown', { clientY: startY });
+  const deltaY = endY - startY;
+  const direction = deltaY < 0 ? 'up' : 'down';
+
+  // Start drag past the slop threshold
+  const originY = startDrag(element, { startY, direction });
 
   // Move in steps
-  const deltaY = endY - startY;
   const stepSize = deltaY / steps;
 
   for (let i = 1; i <= steps; i++) {
-    const currentY = startY + stepSize * i;
+    const currentY = originY + stepSize * i;
     simulatePointerEvent(document, 'pointermove', { clientY: currentY });
     jest.advanceTimersByTime(duration / steps);
   }
 
   // End drag
-  simulatePointerEvent(document, 'pointerup', { clientY: endY });
+  simulatePointerEvent(document, 'pointerup', { clientY: originY + deltaY });
 }
 
 /**

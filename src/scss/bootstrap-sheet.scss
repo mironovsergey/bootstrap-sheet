@@ -10,11 +10,9 @@
   --bs-sheet-backdrop-bg: #{$sheet-backdrop-bg};
   --bs-sheet-backdrop-backdrop-filter: #{$sheet-backdrop-backdrop-filter};
   --bs-sheet-handle-bg: #{$sheet-handle-bg};
-  --bs-sheet-handle-hover-bg: #{$sheet-handle-hover-bg};
   --bs-sheet-handle-width: #{$sheet-handle-width};
   --bs-sheet-handle-height: #{$sheet-handle-height};
   --bs-sheet-handle-margin: #{$sheet-handle-margin};
-  --bs-sheet-handle-hit-area: #{$sheet-handle-hit-area};
   --bs-sheet-padding-x: #{$sheet-padding-x};
   --bs-sheet-padding-y: #{$sheet-padding-y};
   --bs-sheet-header-padding-y: #{$sheet-header-padding-y};
@@ -47,6 +45,10 @@
   box-shadow: none;
   will-change: transform;
   transform: translateY(100%);
+  // The whole sheet is draggable vertically; horizontal gestures (carousels,
+  // sliders) stay native. touch-action only narrows down the ancestor chain,
+  // so the root is the authoritative place to declare it.
+  touch-action: pan-x pan-y;
 
   &::before {
     content: '';
@@ -100,41 +102,11 @@
 // Sheet handle
 .sheet-handle {
   flex-shrink: 0;
-  position: relative;
-  display: block;
   width: var(--bs-sheet-handle-width);
   height: var(--bs-sheet-handle-height);
   margin: var(--bs-sheet-handle-margin);
   border-radius: calc(var(--bs-sheet-handle-height) / 2);
   background-color: var(--bs-sheet-handle-bg);
-  touch-action: none;
-  user-select: none;
-  cursor: grab;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border-radius: calc((var(--bs-sheet-handle-height) + var(--bs-sheet-handle-hit-area)) / 2);
-    width: calc(var(--bs-sheet-handle-width) + var(--bs-sheet-handle-hit-area));
-    height: calc(var(--bs-sheet-handle-height) + var(--bs-sheet-handle-hit-area));
-    min-height: 44px;
-  }
-
-  &:hover {
-    background-color: var(--bs-sheet-handle-hover-bg);
-  }
-
-  &:active {
-    cursor: grabbing;
-  }
-
-  &:focus-visible {
-    outline: var(--bs-sheet-focus-ring-width) solid var(--bs-sheet-focus-ring-color);
-    outline-offset: 2px;
-  }
 }
 
 // Sheet sections

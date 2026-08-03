@@ -128,6 +128,7 @@ class BootstrapSheet {
     this.#config = mergedConfig;
 
     this.#setupAccessibility();
+    this.#warnDeprecatedDragHandle();
 
     INSTANCES.set(resolvedElement, this);
   }
@@ -281,6 +282,22 @@ class BootstrapSheet {
     this.#element.setAttribute('role', 'dialog');
     this.#element.setAttribute('aria-modal', 'true');
     this.#element.setAttribute('tabindex', '-1');
+  }
+
+  /**
+   * Warn once about the drag handle attribute that no longer does anything
+   */
+  #warnDeprecatedDragHandle(): void {
+    if (!this.#element.querySelector(SELECTOR.DRAG_HANDLE)) {
+      return;
+    }
+
+    console.warn(
+      `[${NAME}] The "data-bs-drag="sheet"" attribute is deprecated and has no effect: ` +
+        'the whole sheet is draggable since v0.4.0. Remove the attribute; the ' +
+        '"sheet-handle" element itself can stay as a visual grabber. ' +
+        'Use data-bs-drag="false" to mark areas that must not start a drag.',
+    );
   }
 
   // ==================== Private Methods: Show ====================
@@ -529,19 +546,13 @@ class BootstrapSheet {
   // ==================== Private Methods: Gestures ====================
 
   /**
-   * Create and attach the drag controller for the sheet's drag handle.
+   * Create and attach the drag controller for the sheet root.
    * The controller owns pointer input and gesture physics; DOM side effects
    * (transform, backdrop, class names, events, animations) happen here.
    */
   #attachGestureHandlers(): void {
-    const dragHandle = this.#element.querySelector<HTMLElement>(SELECTOR.DRAG_HANDLE);
-
-    if (!dragHandle) {
-      return;
-    }
-
     this.#dragController = new DragController({
-      handle: dragHandle,
+      element: this.#element,
       getPosition: () => getTranslateY(this.#element),
       getSheetHeight: () => this.#sheetHeight,
       isEnabled: () => this.#state.isShown,
@@ -562,6 +573,7 @@ class BootstrapSheet {
           this.#animateSpring(0, velocity);
         }
       },
+      onAbort: () => this.#animateSpring(0),
     });
 
     this.#dragController.attach();

@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-08-03
+
+### Changed
+
+**The whole sheet is now draggable; a drag handle element is no longer required.**
+
+Until now a gesture only started on an element carrying `data-bs-drag="sheet"`, and a sheet without one ignored `gestures: true` entirely. Dragging is now available anywhere on the sheet, which is how the native iOS sheet behaves and what users reach for first - most people try to pull the sheet by its content, not by the grabber.
+
+Making the entire surface draggable means the component has to tell a drag from a tap, and from a scroll of the content inside it. Three rules do that:
+
+1. **Drag slop.** A gesture becomes a drag only after the pointer has travelled 8 px vertically. Below that threshold nothing moves and the event is left alone, so buttons, links and form controls inside the sheet keep working exactly as before. A predominantly horizontal gesture is abandoned to the content, leaving carousels and sliders usable.
+2. **Gesture arbitration with scrollable content.** When a gesture starts inside a scrollable element, ownership is resolved once, at touch-down: content that is scrolled away from its top keeps the gesture; content sitting at its top keeps an upward gesture (it can still scroll that way) but yields a downward one to the sheet. A gesture starting within 100 ms of a content scroll is treated as momentum and left to the content, so a flick that coasts to the top does not turn into an accidental dismissal.
+3. **Opt-out zones.** `data-bs-drag="false"` marks a subtree that must never start a drag. `input[type="range"]`, `[contenteditable]` and `[draggable="true"]` are excluded automatically, since they own a drag gesture of their own.
+
+The decision holds for the entire gesture. This is a limitation of the web rather than a design choice: once the browser has begun scrolling, `preventDefault()` can no longer stop it, and `touch-action` cannot be changed mid-gesture. A gesture that began as a content scroll therefore stays a content scroll until the finger lifts - unlike iOS, which can hand off inside a single gesture.
+
+**Migration.** No markup change is required for the new behavior; it applies to every sheet automatically. If your sheet contains content that must not be draggable - a swipeable carousel, a signature pad, a map - wrap it in `data-bs-drag="false"`. Custom scroll containers inside the sheet should carry `overscroll-behavior: contain` (the bundled `.sheet-body` already does).
+
+**The grabber lost the styles that made it the sole drag target.** `.sheet-handle` no longer carries `cursor: grab` / `cursor: grabbing`, a `:focus-visible` outline, or the invisible `::before` pseudo-element that enlarged its touch area - all of them advertised or served a hit target that is now the entire sheet. It remains a purely visual grabber, with its class, dimensions, margin and background unchanged. Text selection during a drag is still suppressed, from `.sheet.dragging` rather than from the handle.
+
+Two Sass variables were removed along with the rules that used them:
+
+| Removed variable         | Was used for                                    |
+| ------------------------ | ----------------------------------------------- |
+| `$sheet-handle-hover-bg` | Hover colour of the grabber                     |
+| `$sheet-handle-hit-area` | Size of the grabber's invisible touch extension |
+
+If you overrode either one, delete the override - Sass will otherwise fail on an unknown variable. The remaining handle variables (`$sheet-handle-bg`, `$sheet-handle-width`, `$sheet-handle-height`, `$sheet-handle-margin`) are unchanged. To keep a hover effect, style `.sheet-handle:hover` directly in your own stylesheet.
+
+### Deprecated
+
+**`data-bs-drag="sheet"` has no effect and now emits a console warning.** It will be removed in v0.5.0. Remove the attribute; the `.sheet-handle` element itself can stay exactly as it is - it keeps its class, its styling and its role as a visual grabber, it simply no longer has any bearing on where dragging works. `touch-action: none` has been removed from `.sheet-handle`, since `touch-action` is now declared on the sheet root where it governs the whole surface.
+
+### Fixed
+
+**A gesture cancelled by the browser no longer dismisses the sheet.** `pointercancel` was handled identically to `pointerup`, so it produced a full release decision: if the sheet happened to be dragged past the midpoint when the browser took the gesture away, it would close even though the user never finished the gesture. Cancellation now aborts the drag and returns the sheet to its resting position. This was largely theoretical while dragging was confined to a small handle, but with the whole sheet draggable - and native scrolling now in the picture - `pointercancel` is an ordinary occurrence.
+
+---
+
 ## [0.3.1] - 2026-07-24
 
 ### Fixed
@@ -140,6 +179,7 @@ The following options now emit a console warning and will be removed in v0.3.0. 
 - Static backdrop mode for confirmations
 - Customizable animation duration
 
+[0.4.0]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.1.0...v0.2.0
