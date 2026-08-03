@@ -1,6 +1,11 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { CLASS_NAME, SELECTOR } from '../../src/js/constants';
-import { createSheet, advanceTimersAndFlush, TRANSITION_WAIT } from '../setup/test-utils';
+import {
+  createSheet,
+  advanceTimersAndFlush,
+  startDrag,
+  TRANSITION_WAIT,
+} from '../setup/test-utils';
 
 describe('BootstrapSheet - Keyboard Navigation', () => {
   describe('ESC key behavior', () => {
@@ -459,15 +464,10 @@ describe('BootstrapSheet - Keyboard Navigation', () => {
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle = sheet.querySelector('.sheet-handle');
 
       // Start dragging
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
+      startDrag(handle, { startY: 0, pointerId: 1 });
 
       expect(sheet).toHaveClass(CLASS_NAME.DRAGGING);
 
@@ -498,14 +498,9 @@ describe('BootstrapSheet - Keyboard Navigation', () => {
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle = sheet.querySelector('.sheet-handle');
 
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
+      startDrag(handle, { startY: 0, pointerId: 1 });
 
       expect(sheet).toHaveClass(CLASS_NAME.DRAGGING);
 

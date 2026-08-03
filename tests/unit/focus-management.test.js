@@ -881,7 +881,7 @@ describe('BootstrapSheet - Focus Management', () => {
       expect(document.activeElement).toBe(closeBtn);
 
       // Simulate drag
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle = sheet.querySelector('.sheet-handle');
 
       const pointerDown = new PointerEvent('pointerdown', {
         bubbles: true,

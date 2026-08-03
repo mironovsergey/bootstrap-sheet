@@ -55,9 +55,40 @@ export const SELECTOR = {
   /** Selector for dismiss triggers */
   DATA_DISMISS: '[data-bs-dismiss="sheet"]',
 
-  /** Selector for drag handle area */
+  /**
+   * Selector for the legacy explicit drag handle
+   * @deprecated since 0.4.0 - the whole sheet is draggable; removed in 0.5.0
+   */
   DRAG_HANDLE: '[data-bs-drag="sheet"]',
+
+  /** Selector for subtrees the sheet must not be dragged from */
+  DRAG_OPT_OUT: '[data-bs-drag="false"]',
 };
+
+/**
+ * Elements that own a drag gesture of their own, treated as implicit
+ * `data-bs-drag="false"` zones so authors do not have to opt each one out.
+ */
+export const DRAG_OPT_OUT_SELECTOR = [
+  '[data-bs-drag="false"]',
+  'input[type="range"]',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[draggable="true"]',
+].join(', ');
+
+/**
+ * Distance in pixels the pointer must travel before a gesture counts as a
+ * drag. Below this threshold nothing moves and clicks land normally, which is
+ * what makes a fully draggable sheet compatible with interactive content.
+ */
+export const DRAG_SLOP = 8;
+
+/**
+ * How long after a content scroll a drag gesture stays disabled (ms).
+ * Prevents a momentum scroll that lands at the top of the content from
+ * immediately becoming a dismiss drag.
+ */
+export const SCROLL_LOCK_TIMEOUT = 100;
 
 /**
  * Selector for all focusable elements

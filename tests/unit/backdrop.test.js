@@ -1,6 +1,12 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { CLASS_NAME } from '../../src/js/constants';
-import { createSheet, advanceTimersAndFlush, TRANSITION_WAIT } from '../setup/test-utils';
+import {
+  createSheet,
+  advanceTimersAndFlush,
+  startDrag,
+  simulatePointerEvent,
+  TRANSITION_WAIT,
+} from '../setup/test-utils';
 
 describe('BootstrapSheet - Backdrop', () => {
   describe('Backdrop creation', () => {
@@ -389,21 +395,11 @@ describe('BootstrapSheet - Backdrop', () => {
       const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
       expect(backdrop.style.opacity).toBe('1');
 
-      const handle = sheet.querySelector('[data-bs-drag="sheet"]');
+      const handle = sheet.querySelector('.sheet-handle');
 
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
+      const originY = startDrag(handle, { startY: 0, pointerId: 1 });
 
-      const pointerMove = new PointerEvent('pointermove', {
-        bubbles: true,
-        clientY: 100,
-        pointerId: 1,
-      });
-      document.dispatchEvent(pointerMove);
+      simulatePointerEvent(document, 'pointermove', { clientY: originY + 100 });
 
       jest.advanceTimersByTime(16);
 
@@ -425,10 +421,8 @@ describe('BootstrapSheet - Backdrop', () => {
       const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
       expect(backdrop.style.transition).toBe('');
 
-      const handle = sheet.querySelector('[data-bs-drag="sheet"]');
-      handle.dispatchEvent(
-        new PointerEvent('pointerdown', { bubbles: true, clientY: 0, pointerId: 1 }),
-      );
+      const handle = sheet.querySelector('.sheet-handle');
+      startDrag(handle, { startY: 0, pointerId: 1 });
 
       expect(backdrop.style.transition).toBe('');
     });
@@ -446,14 +440,9 @@ describe('BootstrapSheet - Backdrop', () => {
       const backdrop = document.querySelector(`.${CLASS_NAME.BACKDROP}`);
       const originalTransition = backdrop.style.transition;
 
-      const handle = sheet.querySelector('[data-bs-drag="sheet"]');
+      const handle = sheet.querySelector('.sheet-handle');
 
-      const pointerDown = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle.dispatchEvent(pointerDown);
+      startDrag(handle, { startY: 0, pointerId: 1 });
 
       expect(backdrop.style.transition).toBe(originalTransition);
     });

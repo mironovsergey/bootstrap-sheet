@@ -1,6 +1,11 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
-import { CLASS_NAME, SELECTOR } from '../../src/js/constants';
-import { createSheet, advanceTimersAndFlush, TRANSITION_WAIT } from '../setup/test-utils';
+import { CLASS_NAME } from '../../src/js/constants';
+import {
+  createSheet,
+  advanceTimersAndFlush,
+  startDrag,
+  TRANSITION_WAIT,
+} from '../setup/test-utils';
 
 describe('BootstrapSheet - Configuration Options', () => {
   describe('Static properties', () => {
@@ -152,14 +157,9 @@ describe('BootstrapSheet - Configuration Options', () => {
       instance1.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      const handle1 = sheet1.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle1 = sheet1.querySelector('.sheet-handle');
 
-      const pointerDown1 = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle1.dispatchEvent(pointerDown1);
+      startDrag(handle1);
 
       expect(sheet1).toHaveClass(CLASS_NAME.DRAGGING);
 
@@ -171,14 +171,9 @@ describe('BootstrapSheet - Configuration Options', () => {
       instance2.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      const handle2 = sheet2.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle2 = sheet2.querySelector('.sheet-handle');
 
-      const pointerDown2 = new PointerEvent('pointerdown', {
-        bubbles: true,
-        clientY: 0,
-        pointerId: 1,
-      });
-      handle2.dispatchEvent(pointerDown2);
+      startDrag(handle2);
 
       expect(sheet2).not.toHaveClass(CLASS_NAME.DRAGGING);
     });
@@ -201,7 +196,7 @@ describe('BootstrapSheet - Configuration Options', () => {
       instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      const handle = sheet.querySelector(SELECTOR.DRAG_HANDLE);
+      const handle = sheet.querySelector('.sheet-handle');
 
       // Events upfront to prevent timestamp drift
       const downEvent = new PointerEvent('pointerdown', {
