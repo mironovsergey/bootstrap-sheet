@@ -1,6 +1,6 @@
 {
   "name": "bootstrap-sheet",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A touch-friendly bottom sheet component for Bootstrap 5",
   "main": "dist/js/bootstrap-sheet.js",
   "module": "dist/js/bootstrap-sheet.esm.js",

@@ -32,7 +32,7 @@ interface SheetHandlers {
 
 /**
  * @class BootstrapSheet - A touch-friendly bottom sheet component for Bootstrap 5
- * @version 0.4.0
+ * @version 0.5.0
  * @author Sergey Mironov <sergeymironov@protonmail.com>
  * @license MIT (https://github.com/mironovsergey/bootstrap-sheet/blob/main/LICENSE)
  */
