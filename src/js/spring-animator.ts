@@ -43,6 +43,11 @@ export default class SpringAnimator {
   /** Pending animation frame ID (null when idle) */
   #frame: number | null = null;
 
+  /** Whether an animation is currently in flight */
+  get isRunning(): boolean {
+    return this.#frame !== null;
+  }
+
   /**
    * Start a spring animation, canceling any previous one
    * @param options - Animation parameters and callbacks

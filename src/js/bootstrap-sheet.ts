@@ -16,6 +16,7 @@ import ScrollBarHelper from './scrollbar';
 import FocusTrap, { InertManager } from './focus-trap';
 import SpringAnimator from './spring-animator';
 import DragController from './drag-controller';
+import DetentModel, { parseDetents } from './detents';
 
 export type { BootstrapSheetOptions } from './constants';
 
@@ -67,8 +68,22 @@ class BootstrapSheet {
   /** Whether the component has been disposed */
   #disposed = false;
 
-  /** Total height of the sheet, measured when showing */
+  /** Total height of the sheet, measured when showing and on resize */
   #sheetHeight = 0;
+
+  // ==================== Detents ====================
+
+  /** Resting positions the sheet supports */
+  #detents: DetentModel;
+
+  /** Detent the sheet is resting at */
+  #currentDetent: number;
+
+  /** Whether the sheet currently presents modally (dimmed, inert, trapped) */
+  #modal = true;
+
+  /** Observer keeping the sheet height in step with layout changes */
+  #resizeObserver: ResizeObserver | null = null;
 
   // ==================== Animation ====================
 
@@ -107,10 +122,12 @@ class BootstrapSheet {
     }
 
     // Assign fields before the duplicate check so every constructor path
-    // definitely initializes them; the placeholder config is replaced below.
+    // definitely initializes them; the placeholders are replaced below.
     this.#element = resolvedElement;
     this.#config = Default;
     this.#focusTrap = new FocusTrap({ trapElement: resolvedElement });
+    this.#detents = new DetentModel(Default.detents);
+    this.#currentDetent = this.#detents.smallest;
 
     // Prevent duplicate instances
     const existing = INSTANCES.get(resolvedElement);
@@ -123,9 +140,16 @@ class BootstrapSheet {
     const dataConfig = extractDataAttributes(resolvedElement);
     const mergedConfig: Record<string, unknown> = { ...Default, ...dataConfig, ...config };
 
+    // Data attributes arrive as strings; normalize before the type check
+    mergedConfig.detents = parseDetents(mergedConfig.detents);
+
     validateConfigTypes<ResolvedSheetOptions>(NAME, mergedConfig, DefaultType);
 
     this.#config = mergedConfig;
+    this.#detents = new DetentModel(this.#config.detents);
+    this.#currentDetent = this.#resolveInitialDetent();
+
+    this.#validateUndimmedDetent();
 
     this.#setupAccessibility();
     this.#warnDeprecatedDragHandle();
@@ -191,6 +215,42 @@ class BootstrapSheet {
    */
   get isTransitioning(): boolean {
     return this.#state.isTransitioning;
+  }
+
+  /**
+   * The detent the sheet is resting at.
+   *
+   * Reports the resting position, not the position in flight: during a drag or
+   * an animation it still names where the sheet last settled.
+   * @returns The current detent
+   */
+  get currentDetent(): number {
+    return this.#currentDetent;
+  }
+
+  /**
+   * Animate the sheet to one of its configured detents
+   * @param detent - A value from the `detents` option
+   * @fires EVENT.DETENT_CHANGE
+   */
+  setDetent(detent: number): void {
+    if (this.#disposed || !this.#state.isShown || this.#state.isTransitioning) {
+      return;
+    }
+
+    if (!this.#detents.has(detent)) {
+      console.warn(
+        `[${NAME}] setDetent() accepts a configured detent, but received ` +
+          `${JSON.stringify(detent)}. Configured: ${JSON.stringify(this.#detents.list)}.`,
+      );
+      return;
+    }
+
+    if (detent === this.#currentDetent) {
+      return;
+    }
+
+    this.#animateToDetent(detent);
   }
 
   /**
@@ -309,8 +369,8 @@ class BootstrapSheet {
     this.#state.isShown = true;
     this.#state.isTransitioning = true;
     this.#focusTrap.capture();
-    this.#sheetHeight =
-      this.#element.offsetHeight || this.#element.getBoundingClientRect().height || 0;
+    this.#currentDetent = this.#resolveInitialDetent();
+    this.#sheetHeight = this.#measureHeight();
   }
 
   /**
@@ -321,18 +381,18 @@ class BootstrapSheet {
       this.#createBackdrop();
     }
 
-    this.#inert.apply([this.#backdrop?.element, this.#element]);
-    this.#scrollBar.hide();
+    this.#modal = this.#isModalAt(this.#currentDetent);
+    this.#applyModality();
+    this.#updateTouchAction();
 
     this.#element.classList.add(CLASS_NAME.SHOWING);
 
     this.#attachEventHandlers();
+    this.#observeResize();
 
-    if (this.#config.focus) {
-      this.#focusTrap.activate();
-    }
-
-    this.#animateSpring(0, 0, () => this.#finalizeShow());
+    this.#animateSpring(this.#detents.positionOf(this.#currentDetent, this.#sheetHeight), 0, () =>
+      this.#finalizeShow(),
+    );
   }
 
   /**
@@ -343,7 +403,7 @@ class BootstrapSheet {
     this.#element.classList.add(CLASS_NAME.SHOW);
     this.#state.isTransitioning = false;
 
-    if (this.#config.focus) {
+    if (this.#config.focus && this.#modal) {
       this.#focusTrap.focusInitial();
     }
 
@@ -377,6 +437,7 @@ class BootstrapSheet {
    */
   #executeHide(): void {
     this.#detachEventHandlers();
+    this.#disconnectResizeObserver();
     this.#cancelAnimations();
     this.#inert.remove();
 
@@ -389,6 +450,7 @@ class BootstrapSheet {
   #finalizeHide(): void {
     this.#element.classList.remove(CLASS_NAME.HIDING);
     this.#element.style.transform = '';
+    this.#element.style.touchAction = '';
     this.#state.isTransitioning = false;
 
     this.#removeBackdrop();
@@ -424,11 +486,44 @@ class BootstrapSheet {
   }
 
   /**
-   * Update backdrop opacity during drag
-   * @param ratio - Opacity ratio (0 to 1)
+   * Update backdrop opacity for a sheet position
+   * @param position - Current translateY (px)
    */
-  #updateBackdropOpacity(ratio: number): void {
-    this.#backdrop?.setOpacity(ratio);
+  #updateBackdropOpacity(position: number): void {
+    this.#backdrop?.setOpacity(this.#opacityAt(position));
+  }
+
+  /**
+   * Backdrop opacity for a sheet position.
+   *
+   * Without `undimmedDetent` the backdrop tracks how open the sheet is, which
+   * is the behavior every previous version had. With it, dimming is confined
+   * to the range above that detent: the backdrop is fully transparent at and
+   * below it, then ramps to opaque at the next detent up.
+   *
+   * @param position - Current translateY (px)
+   * @returns Opacity in [0, 1]
+   */
+  #opacityAt(position: number): number {
+    const height = this.#sheetHeight;
+    const undimmed = this.#config.undimmedDetent;
+
+    if (undimmed === null) {
+      // An unmeasured sheet counts as fully open, matching the drag ratio
+      return clamp(1 - (height ? position / height : 0), 0, 1);
+    }
+
+    const dimmed = this.#detents.above(undimmed);
+
+    if (dimmed === null) {
+      return 0;
+    }
+
+    const undimmedY = this.#detents.positionOf(undimmed, height);
+    const dimmedY = this.#detents.positionOf(dimmed, height);
+    const span = undimmedY - dimmedY;
+
+    return clamp(span ? (undimmedY - position) / span : 0, 0, 1);
   }
 
   // ==================== Private Methods: Event Handlers ====================
@@ -555,6 +650,8 @@ class BootstrapSheet {
       element: this.#element,
       getPosition: () => getTranslateY(this.#element),
       getSheetHeight: () => this.#sheetHeight,
+      getTopBound: () => this.#detents.positionOf(this.#detents.largest, this.#sheetHeight),
+      isAtLargestDetent: () => this.#currentDetent === this.#detents.largest,
       isEnabled: () => this.#state.isShown,
       onDragStart: () => this.#element.classList.add(CLASS_NAME.DRAGGING),
       onDragEnd: () => this.#element.classList.remove(CLASS_NAME.DRAGGING),
@@ -562,18 +659,20 @@ class BootstrapSheet {
       onMove: ({ adjustedY, deltaY, ratio, velocity }) => {
         this.#element.style.transform = `translateY(${adjustedY}px)`;
 
-        this.#updateBackdropOpacity(clamp(ratio, 0, 1));
+        this.#updateBackdropOpacity(adjustedY);
 
         this.#triggerEvent(EVENT.SLIDE, { velocity, adjustedY, deltaY, ratio });
       },
-      onRelease: ({ shouldDismiss, velocity }) => {
-        if (shouldDismiss) {
-          this.#animateSpring(this.#sheetHeight, velocity, () => this.hide());
+      onRelease: ({ projectedY, velocity }) => {
+        const target = this.#detents.resolve(projectedY, this.#sheetHeight);
+
+        if (target.detent === null) {
+          this.#animateSpring(target.position, velocity, () => this.hide());
         } else {
-          this.#animateSpring(0, velocity);
+          this.#animateToDetent(target.detent, velocity);
         }
       },
-      onAbort: () => this.#animateSpring(0),
+      onAbort: () => this.#animateToDetent(this.#currentDetent),
     });
 
     this.#dragController.attach();
@@ -588,6 +687,209 @@ class BootstrapSheet {
       this.#dragController.detach();
       this.#dragController = null;
     }
+  }
+
+  // ==================== Private Methods: Detents ====================
+
+  /**
+   * The detent the sheet opens at: the configured one, or the smallest
+   * @throws {TypeError} If `initialDetent` is not one of the configured detents
+   */
+  #resolveInitialDetent(): number {
+    const initial = this.#config.initialDetent;
+
+    if (initial === null) {
+      return this.#detents.smallest;
+    }
+
+    if (!this.#detents.has(initial)) {
+      throw new TypeError(
+        `[${NAME}] Option "initialDetent" must be one of the configured detents ` +
+          `${JSON.stringify(this.#detents.list)}, but received ${JSON.stringify(initial)}.`,
+      );
+    }
+
+    return initial;
+  }
+
+  /**
+   * Reject an `undimmedDetent` that is not a detent, or that would leave the
+   * sheet undimmed everywhere - a permanently non-modal sheet is a different
+   * component contract, not a configuration of this one.
+   * @throws {TypeError} If the option cannot produce a dimmed range
+   */
+  #validateUndimmedDetent(): void {
+    const undimmed = this.#config.undimmedDetent;
+
+    if (undimmed === null) {
+      return;
+    }
+
+    if (!this.#detents.has(undimmed)) {
+      throw new TypeError(
+        `[${NAME}] Option "undimmedDetent" must be one of the configured detents ` +
+          `${JSON.stringify(this.#detents.list)}, but received ${JSON.stringify(undimmed)}.`,
+      );
+    }
+
+    if (undimmed === this.#detents.largest) {
+      throw new TypeError(
+        `[${NAME}] Option "undimmedDetent" must be smaller than the largest detent ` +
+          `(${this.#detents.largest}), otherwise the sheet is never modal.`,
+      );
+    }
+  }
+
+  /**
+   * Animate to a detent and settle there
+   * @param detent - Target detent
+   * @param initialVelocity - Velocity at animation start (px/s)
+   */
+  #animateToDetent(detent: number, initialVelocity = 0): void {
+    const target = this.#detents.positionOf(detent, this.#sheetHeight);
+
+    this.#animateSpring(target, initialVelocity, () => this.#settleAt(detent));
+  }
+
+  /**
+   * Record a settled detent and bring the sheet's state in line with it.
+   *
+   * Modality is toggled only here, never per animation frame: applying inert
+   * walks the ancestor chain of the sheet, which is far too expensive to run
+   * sixty times a second.
+   * @param detent - The detent just settled on
+   * @fires EVENT.DETENT_CHANGE
+   */
+  #settleAt(detent: number): void {
+    const previousDetent = this.#currentDetent;
+
+    this.#currentDetent = detent;
+
+    this.#updateTouchAction();
+
+    const modal = this.#isModalAt(detent);
+
+    if (modal !== this.#modal) {
+      this.#modal = modal;
+      this.#applyModality();
+    }
+
+    if (detent !== previousDetent) {
+      this.#triggerEvent(EVENT.DETENT_CHANGE, { detent, previousDetent });
+    }
+  }
+
+  /**
+   * Whether the sheet presents modally at a given detent
+   * @param detent - Detent to test
+   */
+  #isModalAt(detent: number): boolean {
+    const undimmed = this.#config.undimmedDetent;
+
+    return undimmed === null || detent > undimmed;
+  }
+
+  /**
+   * Apply the current modality to the DOM.
+   *
+   * A non-modal sheet leaves the page behind usable in every sense: it still
+   * scrolls, the backdrop is transparent to pointer events, the background is
+   * not inert, focus is not trapped, and `aria-modal` says so.
+   */
+  #applyModality(): void {
+    this.#element.setAttribute('aria-modal', String(this.#modal));
+
+    this.#backdrop?.setInteractive(this.#modal);
+
+    if (this.#modal) {
+      this.#scrollBar.hide();
+      this.#inert.apply([this.#backdrop?.element, this.#element]);
+
+      if (this.#config.focus) {
+        this.#focusTrap.activate();
+      }
+    } else {
+      this.#scrollBar.reset();
+      this.#inert.remove();
+      this.#focusTrap.deactivate();
+    }
+  }
+
+  /**
+   * Manage `touch-action` on the sheet root.
+   *
+   * Below the most open detent vertical panning belongs to the sheet alone, so
+   * the content must not scroll natively. At the most open detent the
+   * stylesheet value applies again and content scrolls as usual.
+   */
+  #updateTouchAction(): void {
+    const atLargest = this.#currentDetent === this.#detents.largest;
+
+    this.#element.style.touchAction = atLargest ? '' : 'pan-x';
+  }
+
+  // ==================== Private Methods: Layout ====================
+
+  /**
+   * Measure the sheet's height
+   */
+  #measureHeight(): number {
+    return this.#element.offsetHeight || this.#element.getBoundingClientRect().height || 0;
+  }
+
+  /**
+   * Track layout changes so detents stay where they belong.
+   *
+   * The height is captured when the sheet opens; a rotation, an on-screen
+   * keyboard or a mobile address bar collapsing all change it afterwards, and
+   * every detent is expressed as a fraction of it.
+   */
+  #observeResize(): void {
+    if (typeof ResizeObserver === 'undefined' || this.#resizeObserver) {
+      return;
+    }
+
+    this.#resizeObserver = new ResizeObserver(() => this.#handleResize());
+    this.#resizeObserver.observe(this.#element);
+  }
+
+  /**
+   * Stop tracking layout changes
+   */
+  #disconnectResizeObserver(): void {
+    if (this.#resizeObserver) {
+      this.#resizeObserver.disconnect();
+      this.#resizeObserver = null;
+    }
+  }
+
+  /**
+   * Re-measure and re-place the sheet after a layout change.
+   *
+   * Skipped while a gesture or an animation owns the transform: correcting the
+   * position underneath either one would fight it.
+   */
+  #handleResize(): void {
+    if (
+      !this.#state.isShown ||
+      this.#dragController?.isDragging ||
+      this.#springAnimator.isRunning
+    ) {
+      return;
+    }
+
+    const height = this.#measureHeight();
+
+    if (height === 0 || height === this.#sheetHeight) {
+      return;
+    }
+
+    this.#sheetHeight = height;
+
+    const position = this.#detents.positionOf(this.#currentDetent, height);
+
+    this.#element.style.transform = `translateY(${position}px)`;
+    this.#updateBackdropOpacity(position);
   }
 
   // ==================== Private Methods: Spring Animation ====================
@@ -620,11 +922,14 @@ class BootstrapSheet {
       params: this.#resolveSpringParams(),
       onFrame: (position) => {
         this.#element.style.transform = `translateY(${position}px)`;
-        this.#updateBackdropOpacity(clamp(this.#positionToRatio(position), 0, 1));
+        this.#updateBackdropOpacity(position);
       },
       onSettle: () => {
-        // Snap to exact target and clean up
+        // Snap to exact target and clean up. The spring stops within half a
+        // pixel of the target, so the backdrop has to be pinned as well or it
+        // keeps the opacity of the last frame before that.
         this.#element.style.transform = `translateY(${targetY}px)`;
+        this.#updateBackdropOpacity(targetY);
         this.#element.classList.remove(CLASS_NAME.ANIMATING);
 
         onComplete?.();
@@ -633,17 +938,6 @@ class BootstrapSheet {
   }
 
   // ==================== Private Methods: Utilities ====================
-
-  /**
-   * Convert absolute translateY position to a backdrop opacity ratio.
-   * Returns 1 (fully opaque) when sheet is fully open (position = 0),
-   * and 0 (transparent) when fully closed (position = sheetHeight).
-   * @param position - Current translateY in pixels
-   * @returns Ratio in range [0, 1]
-   */
-  #positionToRatio(position: number): number {
-    return 1 - (this.#sheetHeight ? position / this.#sheetHeight : 0);
-  }
 
   /**
    * Cancel the spring animation
@@ -665,6 +959,7 @@ class BootstrapSheet {
     this.#scrollBar.reset();
     this.#removeBackdrop();
     this.#detachEventHandlers();
+    this.#disconnectResizeObserver();
     this.#cancelAnimations();
     this.#focusTrap.deactivate();
     this.#inert.remove();

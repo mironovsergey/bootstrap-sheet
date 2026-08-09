@@ -33,6 +33,7 @@ Touch-friendly bottom sheet component for Bootstrap 5 - supports physics-based s
     - [UI Options](#ui-options)
     - [Gesture Options](#gesture-options)
     - [Dragging and scrollable content](#dragging-and-scrollable-content)
+    - [Detents](#detents)
   - [Methods](#methods)
   - [Properties](#properties)
   - [Events](#events)
@@ -205,6 +206,43 @@ Elements that own a drag gesture of their own are excluded automatically: `input
 
 **Custom scroll containers.** Give any scrollable element inside the sheet `overscroll-behavior: contain` so reaching its edge does not scroll the page behind it. The bundled `.sheet-body` already has it.
 
+### Detents
+
+A detent is a height the sheet rests at, written as the fraction of its height that is visible: `1` is fully open, `0.4` shows 40 %. By default a sheet has the single detent `1` and behaves exactly as it always has.
+
+```javascript
+const sheet = new BootstrapSheet('#mySheet', {
+  detents: [0.4, 1],
+  initialDetent: 0.4,
+});
+```
+
+```html
+<div class="sheet" id="mySheet" data-bs-detents="0.4,1"></div>
+```
+
+Both `0.4,1` and `[0.4, 1]` are accepted in the data attribute. Values are sorted and deduplicated; each must be greater than `0` and at most `1`. Closing is not a detent — a sheet rests at a detent or it is gone.
+
+| Name             | Type             | Default | Description                                                                                  |
+| ---------------- | ---------------- | ------- | -------------------------------------------------------------------------------------------- |
+| `detents`        | number[]         | `[1]`   | Resting positions, as visible fractions of the sheet's height.                               |
+| `initialDetent`  | number or `null` | `null`  | Detent the sheet opens at. Defaults to the smallest one.                                     |
+| `undimmedDetent` | number or `null` | `null`  | Largest detent at which the sheet is non-modal. `null` dims proportionally across the range. |
+
+**Snapping.** On release the sheet's velocity is projected forward and it settles at whichever detent — or the closed position — is nearest to that projection. A hard flick overshoots and skips detents; a slow drag lands on the neighbour. Dismissal falls out of the same comparison, so nothing extra is needed to close by swipe.
+
+**Scrolling and expanding.** Below the largest detent the content does not scroll: a gesture anywhere on the sheet expands it first. Once at the largest detent, scrollable content behaves as described above. This mirrors iOS's `prefersScrollingExpandsWhenScrolledToEdge`.
+
+**Non-modal detents.** `undimmedDetent` names the largest detent at which the backdrop stays transparent. At or below it the sheet does not act as a modal: the page behind keeps scrolling and stays clickable, the background is not made inert, focus is not trapped, and `aria-modal` reports `false`. Above it the backdrop fades in and all four are restored. Following iOS, the absence of dimming _is_ the affordance that the area outside is live — which is why an undimmed sheet also does not dismiss on an outside click. `undimmedDetent` must be smaller than the largest detent; a sheet that is never modal is out of scope for this component.
+
+```javascript
+// A 30 % peek that leaves the page usable, dimming only once expanded
+new BootstrapSheet('#mySheet', {
+  detents: [0.3, 1],
+  undimmedDetent: 0.3,
+});
+```
+
 ---
 
 ## Methods
@@ -220,6 +258,7 @@ const sheet = BootstrapSheet.getInstance('#mySheet');
 | `show()`                                         | Opens the sheet.                                                                       |
 | `hide()`                                         | Closes the sheet.                                                                      |
 | `toggle()`                                       | Toggles the sheet visibility.                                                          |
+| `setDetent(detent)`                              | Animates the sheet to one of its configured detents.                                   |
 | `dispose()`                                      | Destroys the sheet instance and removes all event listeners.                           |
 | `getInstance(element)` (static)                  | Returns the sheet instance associated with a DOM element or `null` if not initialized. |
 | `getOrCreateInstance(element, config?)` (static) | Gets existing instance or creates a new one if it doesn't exist.                       |
@@ -232,6 +271,7 @@ const sheet = BootstrapSheet.getInstance('#mySheet');
 | ----------------- | ------- | --------------------------------------------------- |
 | `isShown`         | boolean | Returns `true` if the sheet is currently visible.   |
 | `isTransitioning` | boolean | Returns `true` if the sheet is currently animating. |
+| `currentDetent`   | number  | The detent the sheet is resting at.                 |
 
 ---
 
@@ -239,13 +279,14 @@ const sheet = BootstrapSheet.getInstance('#mySheet');
 
 All events are fired at the sheet element itself.
 
-| Event Type        | Description                                                                                                      |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `show.bs.sheet`   | Fired immediately when the `show()` method is called.                                                            |
-| `shown.bs.sheet`  | Fired when the sheet has been made visible to the user (after the animation completes).                          |
-| `hide.bs.sheet`   | Fired immediately when the `hide()` method is called.                                                            |
-| `hidden.bs.sheet` | Fired when the sheet has finished being hidden from the user (after the animation completes).                    |
-| `slide.bs.sheet`  | Fired continuously during drag/slide gestures. Event detail contains `velocity`, `adjustedY`, `deltaY`, `ratio`. |
+| Event Type              | Description                                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `show.bs.sheet`         | Fired immediately when the `show()` method is called.                                                                     |
+| `shown.bs.sheet`        | Fired when the sheet has been made visible to the user (after the animation completes).                                   |
+| `hide.bs.sheet`         | Fired immediately when the `hide()` method is called.                                                                     |
+| `hidden.bs.sheet`       | Fired when the sheet has finished being hidden from the user (after the animation completes).                             |
+| `slide.bs.sheet`        | Fired continuously during drag/slide gestures. Event detail contains `velocity`, `adjustedY`, `deltaY`, `ratio`.          |
+| `detentchange.bs.sheet` | Fired after the sheet settles at a different detent. Event detail contains `detent` and `previousDetent`. Not cancelable. |
 
 ```javascript
 document.getElementById('mySheet').addEventListener('shown.bs.sheet', (event) => {

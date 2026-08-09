@@ -203,6 +203,24 @@ export function makeScrollable(element, options = {}) {
 }
 
 /**
+ * Set the height the sheet reports, as jsdom performs no layout
+ * @param {HTMLElement} element - Sheet element
+ * @param {number} height - Height in pixels
+ */
+export function setSheetHeight(element, height) {
+  Object.defineProperty(element, 'offsetHeight', { configurable: true, value: height });
+}
+
+/**
+ * Run every live ResizeObserver callback, as jsdom never fires them
+ */
+export function triggerResize() {
+  for (const observer of [...ResizeObserver.instances]) {
+    observer.callback([], observer);
+  }
+}
+
+/**
  * Begin a drag by crossing the slop threshold.
  *
  * A gesture only becomes a drag once the pointer has travelled DRAG_SLOP on

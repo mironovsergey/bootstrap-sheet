@@ -76,6 +76,22 @@ export default class Backdrop {
   }
 
   /**
+   * Let pointer events through the backdrop, or catch them again.
+   *
+   * An undimmed sheet is a non-modal presentation: with no dimming there is
+   * no affordance that the area outside is a dismissal target, and the page
+   * behind stays interactive.
+   * @param interactive - Whether the backdrop should receive pointer events
+   */
+  setInteractive(interactive: boolean): void {
+    if (!this.#element) {
+      return;
+    }
+
+    this.#element.style.pointerEvents = interactive ? '' : 'none';
+  }
+
+  /**
    * Remove the backdrop element from the DOM
    */
   dispose(): void {
