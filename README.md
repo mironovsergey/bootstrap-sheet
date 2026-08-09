@@ -254,8 +254,8 @@ document.getElementById('mySheet').addEventListener('shown.bs.sheet', (event) =>
 
 document.getElementById('mySheet').addEventListener('slide.bs.sheet', (event) => {
   const { velocity, adjustedY, deltaY, ratio } = event.detail;
-  // ratio: 0 = fully open, 1 = fully closed
-  console.log(`Drag progress: ${Math.round(ratio * 100)}%`);
+  // ratio: 1 = fully open, 0 = fully closed
+  console.log(`Sheet is ${Math.round(ratio * 100)}% open`);
 });
 ```
 
