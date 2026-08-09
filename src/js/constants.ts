@@ -20,6 +20,9 @@ export const EVENT = {
 
   /** Fired continuously during drag/slide */
   SLIDE: `slide${EVENT_KEY}`,
+
+  /** Fired after the sheet settles at a different detent */
+  DETENT_CHANGE: `detentchange${EVENT_KEY}`,
 };
 
 /**
@@ -137,6 +140,29 @@ export interface BootstrapSheetOptions {
   gestures?: boolean;
 
   /**
+   * Resting positions of the sheet, as fractions of its height that are
+   * visible: `1` is fully open, `0.4` shows 40 %. Values are sorted and
+   * deduplicated; each must be greater than 0 and at most 1.
+   * @since 0.5.0
+   */
+  detents?: number[];
+
+  /**
+   * Detent the sheet opens at. Defaults to the smallest configured detent.
+   * @since 0.5.0
+   */
+  initialDetent?: number | null;
+
+  /**
+   * Largest detent at which the backdrop stays transparent. At or below it
+   * the sheet is non-modal: the background stays interactive, focus is not
+   * trapped and an outside click does not dismiss. `null` dims proportionally
+   * across the whole range.
+   * @since 0.5.0
+   */
+  undimmedDetent?: number | null;
+
+  /**
    * Damping ratio for spring animation.
    * - 1.0 = critically damped (no bounce, fastest convergence)
    * - 0.8 = slight overshoot (recommended for gesture-driven snaps)
@@ -167,6 +193,9 @@ export const Default: ResolvedSheetOptions = {
   keyboard: true,
   focus: true,
   gestures: true,
+  detents: [1],
+  initialDetent: null,
+  undimmedDetent: null,
   springDampingRatio: 0.8,
   springResponse: 0.4,
 };
@@ -179,6 +208,9 @@ export const DefaultType: Record<keyof BootstrapSheetOptions, string> = {
   keyboard: 'boolean',
   focus: 'boolean',
   gestures: 'boolean',
+  detents: 'array',
+  initialDetent: '(number|null)',
+  undimmedDetent: '(number|null)',
   springDampingRatio: 'number',
   springResponse: 'number',
 };

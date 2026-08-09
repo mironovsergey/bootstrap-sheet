@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-09
+
+### Added
+
+**Detents: the sheet can rest at more than one height.**
+
+A detent is written as the fraction of the sheet's height that is visible - `1` is fully open, `0.4` shows 40 %. The default is a single detent of `1`, which is what every previous version did, so nothing changes for a sheet that does not ask for detents.
+
+```javascript
+new BootstrapSheet('#mySheet', { detents: [0.4, 1] });
+```
+
+```html
+<div class="sheet" data-bs-detents="0.4,1"></div>
+```
+
+The layout model follows iOS: the sheet is laid out at its full height and moved with `translateY`, so a detent is an offset rather than a height animation. The spring engine needed no changes at all - it already animated to an arbitrary target.
+
+Snapping generalizes the rule that was already there rather than replacing it. On release the velocity is projected forward through the deceleration curve, and the sheet settles at whichever detent - or the closed position - is nearest to that projection. With the default single detent this reduces to "nearest of open and closed", whose boundary is the midpoint: exactly the rule v0.4.0 used. Dismissal is the same comparison, so no separate threshold exists, and velocity needs no separate handling: a hard flick overshoots and skips detents, a slow drag lands on the neighbour.
+
+Below the largest detent the content does not scroll: a gesture anywhere on the sheet expands it first, and scrolling resumes once the sheet is fully open. This is iOS's `prefersScrollingExpandsWhenScrolledToEdge`, and it falls out of the gesture arbitration added in v0.4.0 rather than being special-cased.
+
+| Addition                | Kind     | Notes                                                                      |
+| ----------------------- | -------- | -------------------------------------------------------------------------- |
+| `detents`               | option   | `number[]`, default `[1]`; also `data-bs-detents="0.4,1"`                  |
+| `initialDetent`         | option   | `number \| null`, defaults to the smallest detent                          |
+| `undimmedDetent`        | option   | `number \| null`, default `null`                                           |
+| `currentDetent`         | property | The resting detent; not the position in flight during a drag               |
+| `setDetent(detent)`     | method   | Animates to a configured detent                                            |
+| `detentchange.bs.sheet` | event    | Fired once on settle, `detail: { detent, previousDetent }`; not cancelable |
+
+**Non-modal detents via `undimmedDetent`.**
+
+It names the largest detent at which the backdrop stays transparent. At or below it the sheet stops behaving as a modal: page scrolling is not locked, the page behind stays clickable, the background is not made inert, focus is not trapped, `aria-modal` reports `false`, and an outside click does not dismiss. Above it all of them are restored. This follows Apple's reasoning that the absence of dimming _is_ the affordance that the area outside is live; there is deliberately no way to have an undimmed sheet that still dismisses on an outside tap.
+
+Modality is toggled only when a detent change settles, never per animation frame - applying `inert` walks the ancestor chain of the sheet and is far too expensive to run sixty times a second.
+
+**The sheet is re-measured when its height changes.**
+
+Height was captured once when the sheet opened. With detents a stale measurement misplaces every one of them, so a `ResizeObserver` now keeps it current across rotation, an on-screen keyboard, or a mobile address bar collapsing. Re-measurement is skipped while a gesture or an animation owns the transform, so it never fights either one.
+
+### Fixed
+
+**The backdrop now reaches its exact final opacity.** A spring settles within half a pixel of its target and the sheet's transform was pinned to the exact value on settle, but the backdrop kept the opacity computed from that last almost-arrived frame - it ended at `0.9998` instead of `1`. Invisible in practice, but it left the backdrop a hair off its resting value after every animation.
+
+---
+
 ## [0.4.0] - 2026-08-03
 
 ### Changed
@@ -179,6 +226,7 @@ The following options now emit a console warning and will be removed in v0.3.0. 
 - Static backdrop mode for confirmations
 - Customizable animation duration
 
+[0.5.0]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.2.0...v0.3.0

@@ -35,11 +35,15 @@ export interface DragMoveFrame {
 }
 
 /**
- * Release decision reported after the gesture ends
+ * Outcome of a released gesture.
+ *
+ * The controller reports where the sheet would coast to; choosing a resting
+ * position from that is the caller's business, since only it knows the
+ * configured detents.
  */
 export interface DragRelease {
-  /** Whether the projected rest position passes the dismiss threshold */
-  shouldDismiss: boolean;
+  /** Position the sheet would come to rest at if left to decelerate (px) */
+  projectedY: number;
 
   /** Release velocity (px/s, positive = downward) */
   velocity: number;
@@ -57,6 +61,12 @@ export interface DragControllerConfig {
 
   /** Returns the total sheet height (px) for resistance and projection */
   getSheetHeight: () => number;
+
+  /** Returns the translateY of the most open detent, past which the sheet resists */
+  getTopBound: () => number;
+
+  /** Whether the sheet is resting at its most open detent */
+  isAtLargestDetent: () => boolean;
 
   /** Whether drag processing is currently allowed */
   isEnabled: () => boolean;
@@ -324,6 +334,13 @@ export default class DragController {
       return 'content';
     }
 
+    // Below the most open detent the content does not scroll at all: an upward
+    // gesture expands the sheet first, which is what makes "scrolling expands
+    // when scrolled to edge" fall out without special-casing it anywhere else
+    if (!this.#config.isAtLargestDetent()) {
+      return 'undecided';
+    }
+
     // A gesture that follows a scroll too closely is momentum, not intent
     if (event.timeStamp - this.#lastScrollTime < SCROLL_LOCK_TIMEOUT) {
       return 'content';
@@ -473,10 +490,10 @@ export default class DragController {
   /**
    * Calculate the adjusted position based on Apple's rubber band formula.
    *
-   * Three zones:
-   * 1. Past top bound (rawPosition < 0): rubber band resistance
-   * 2. Between bounds (0 <= rawPosition <= sheetHeight): track finger 1:1
-   * 3. Past bottom (rawPosition > sheetHeight): clamped (shouldn't happen normally)
+   * Three zones, where the top bound is the most open detent:
+   * 1. Past the top bound: rubber band resistance
+   * 2. Between the bounds: track finger 1:1, including between detents
+   * 3. Past the bottom (toward dismissal): track finger 1:1
    *
    * @param deltaY - Y delta from the point where the drag began
    * @returns Adjusted absolute translateY position
@@ -487,16 +504,17 @@ export default class DragController {
     }
 
     const rawPosition = this.#startTranslateY + deltaY;
+    const topBound = this.#config.getTopBound();
 
     // Past top bound: apply rubber band resistance
-    if (rawPosition < 0) {
-      const overscroll = -rawPosition;
+    if (rawPosition < topBound) {
+      const overscroll = topBound - rawPosition;
       const resistedOverscroll = rubberBand(
         overscroll,
         this.#config.getSheetHeight(),
         RUBBER_BAND_COEFFICIENT,
       );
-      return -resistedOverscroll;
+      return topBound - resistedOverscroll;
     }
 
     // Within bounds or dragging down toward dismiss: track finger 1:1
@@ -504,12 +522,12 @@ export default class DragController {
   }
 
   /**
-   * Decide whether to snap back or dismiss after release.
+   * Report where the sheet would come to rest after release.
    *
-   * Uses Apple's velocity projection model: projects where the sheet would
-   * come to rest after decelerating, then decides based on that projected
-   * position. If the projection passes the midpoint of the sheet height,
-   * the sheet is dismissed. Otherwise it snaps back to the open position.
+   * Uses Apple's velocity projection model: the release velocity is projected
+   * forward through a deceleration curve, giving the position the sheet would
+   * coast to. Snapping that to a detent - or to dismissal - is left to the
+   * caller, so the projection stays a pure statement about the gesture.
    *
    * @param velocityPxPerMs - Release velocity from the tracker (px/ms)
    */
@@ -517,21 +535,10 @@ export default class DragController {
     const deltaY = this.#currentY - this.#startY;
     const velocity = (velocityPxPerMs || 0) * 1000;
 
-    // Dragging up: always snap back to the open position
-    if (deltaY <= 0) {
-      this.#config.onRelease({ shouldDismiss: false, velocity });
-      return;
-    }
-
-    // Dragging down: project where the sheet would come to rest
     const currentY = this.#resistantPosition(deltaY);
     const displacement = projectDisplacement(velocity, DECELERATION_RATE);
-    const projectedY = currentY + displacement;
 
-    this.#config.onRelease({
-      shouldDismiss: projectedY > this.#config.getSheetHeight() * 0.5,
-      velocity,
-    });
+    this.#config.onRelease({ projectedY: currentY + displacement, velocity });
   }
 
   /**

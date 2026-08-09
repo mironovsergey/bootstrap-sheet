@@ -107,6 +107,31 @@ Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
   configurable: true,
 });
 
+// Mock ResizeObserver: jsdom performs no layout, so observers are driven
+// manually from tests via triggerResize() in test-utils.
+global.ResizeObserver = class ResizeObserver {
+  static instances = [];
+
+  constructor(callback) {
+    this.callback = callback;
+    ResizeObserver.instances.push(this);
+  }
+
+  observe(target) {
+    this.target = target;
+  }
+
+  unobserve() {}
+
+  disconnect() {
+    const index = ResizeObserver.instances.indexOf(this);
+
+    if (index !== -1) {
+      ResizeObserver.instances.splice(index, 1);
+    }
+  }
+};
+
 // Mock Pointer Capture API
 HTMLElement.prototype.setPointerCapture = jest.fn();
 HTMLElement.prototype.releasePointerCapture = jest.fn();
@@ -114,6 +139,9 @@ HTMLElement.prototype.hasPointerCapture = jest.fn(() => false);
 
 // Setup and teardown
 beforeEach(() => {
+  // Drop observers left behind by a previous test
+  ResizeObserver.instances = [];
+
   // Clear document body
   document.body.innerHTML = '';
 

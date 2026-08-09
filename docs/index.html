@@ -381,11 +381,63 @@ mySheet.addEventListener('slide.bs.sheet', (e) => {
       </div>
     </section>
 
-    <!-- 05 · Accessibility -->
+    <!-- 05 · Detents -->
     <section class="bd-section">
       <div class="row gy-5 align-items-start">
         <div class="col-lg-5">
           <div class="bd-section-num">05</div>
+          <h2 class="fw-bold mb-3">Detents</h2>
+          <p class="text-muted">
+            A detent is a height the sheet rests at, written as the fraction of its height that is
+            visible. Release the sheet and it settles at whichever detent your gesture was heading
+            for - a hard flick skips past the ones in between.
+          </p>
+          <p class="text-muted">
+            With <code>undimmedDetent</code> the sheet stays non-modal while collapsed: no dimming,
+            no focus trap, and the page behind stays clickable.
+          </p>
+          <details class="mt-4">
+            <summary>Show code</summary>
+            <pre class="bd-code mt-2"><code>const sheet = new BootstrapSheet('#mySheet', {
+  detents: [0.35, 0.7, 1],
+});
+
+sheet.addEventListener('detentchange.bs.sheet', (e) =&gt; {
+  console.log(e.detail.detent, e.detail.previousDetent);
+});
+
+sheet.setDetent(0.7);</code></pre>
+          </details>
+        </div>
+        <div class="col-lg-7">
+          <div class="bd-demo d-flex flex-column align-items-center justify-content-center gap-4">
+            <div class="d-flex justify-content-between align-items-baseline"
+              style="width: 100%; max-width: 360px;">
+              <span class="small text-muted">currentDetent</span>
+              <span class="badge bg-secondary font-monospace" id="detentValue"
+                style="min-width: 3.5rem; text-align: center;">-</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+              <button type="button" class="btn btn-primary px-4" onclick="openDetentSheet()">
+                Three detents <i class="bi bi-arrow-up ms-1"></i>
+              </button>
+              <button type="button" class="btn btn-outline-primary px-4" onclick="openUndimmedSheet()">
+                Non-modal peek
+              </button>
+            </div>
+            <p class="small text-muted mb-0 text-center">
+              While the peek sheet is open, these buttons still work - it is not modal.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 · Accessibility -->
+    <section class="bd-section">
+      <div class="row gy-5 align-items-start">
+        <div class="col-lg-5">
+          <div class="bd-section-num">06</div>
           <h2 class="fw-bold mb-3">Accessibility</h2>
           <ul class="text-muted ps-3" style="line-height: 2;">
             <li><strong>ARIA</strong> - <code>role="dialog"</code> and <code>aria-modal="true"</code> applied
@@ -482,7 +534,54 @@ mySheet.addEventListener('slide.bs.sheet', (e) => {
     </div>
   </div>
 
-  <!-- Sheet 5: Accessibility -->
+  <!-- Sheet 5: Detents -->
+  <div class="sheet" id="sheetDetents">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h5 class="sheet-title">Three detents</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"></button>
+    </div>
+    <div class="sheet-body">
+      <p>
+        Drag the sheet up and down: it settles at 35 %, 70 % or fully open. Below the largest detent
+        a drag anywhere expands the sheet first, so this text only scrolls once you are at the top.
+      </p>
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="jumpToDetent(0.35)">
+          35 %
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="jumpToDetent(0.7)">
+          70 %
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="jumpToDetent(1)">
+          100 %
+        </button>
+      </div>
+      <p class="text-muted small mb-0">
+        Every jump goes through the same spring the gestures use, and fires
+        <code>detentchange.bs.sheet</code> once it settles.
+      </p>
+    </div>
+  </div>
+
+  <!-- Sheet 6: Non-modal peek -->
+  <div class="sheet" id="sheetUndimmed">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h5 class="sheet-title">Non-modal peek</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="sheet" aria-label="Close"></button>
+    </div>
+    <div class="sheet-body">
+      <p>
+        This sheet is resting at <code>undimmedDetent</code>, so it presents non-modally: page
+        scrolling is not locked, the backdrop is transparent to clicks, the page is not inert and
+        focus is not trapped. Try scrolling or clicking the page behind it.
+      </p>
+      <p class="mb-0">Drag it up past the peek and the backdrop fades in - it becomes modal.</p>
+    </div>
+  </div>
+
+  <!-- Sheet 7: Accessibility -->
   <div class="sheet" id="sheet5">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
@@ -587,6 +686,48 @@ mySheet.addEventListener('slide.bs.sheet', (e) => {
       ratioFill.style.width = '0%';
       ratioValue.textContent = '-';
     });
+
+    // ── Detents ────────────────────────────────────
+    const detentValue = document.getElementById('detentValue');
+
+    const detentSheet = new BootstrapSheet('#sheetDetents', {
+      detents: [0.35, 0.7, 1],
+    });
+
+    const undimmedSheet = new BootstrapSheet('#sheetUndimmed', {
+      detents: [0.3, 1],
+      undimmedDetent: 0.3,
+    });
+
+    for (const instance of [detentSheet, undimmedSheet]) {
+      const element = instance === detentSheet
+        ? document.getElementById('sheetDetents')
+        : document.getElementById('sheetUndimmed');
+
+      const report = () => {
+        detentValue.textContent = instance.currentDetent.toFixed(2);
+      };
+
+      element.addEventListener('shown.bs.sheet', report);
+      element.addEventListener('detentchange.bs.sheet', report);
+      element.addEventListener('hidden.bs.sheet', () => {
+        detentValue.textContent = '-';
+      });
+    }
+
+    function openDetentSheet() {
+      undimmedSheet.hide();
+      detentSheet.show();
+    }
+
+    function openUndimmedSheet() {
+      detentSheet.hide();
+      undimmedSheet.show();
+    }
+
+    function jumpToDetent(detent) {
+      detentSheet.setDetent(detent);
+    }
   </script>
 
 </body>
