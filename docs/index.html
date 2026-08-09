@@ -341,7 +341,7 @@ new BootstrapSheet('#mySheet', { backdrop: false });</code></pre>
           <h2 class="fw-bold mb-3">Slide Event</h2>
           <p class="text-muted">
             <code>slide.bs.sheet</code> fires on every animation frame during drag.
-            <code>detail.ratio</code> runs from <code>0</code> (fully open) to <code>1</code> (dismissed),
+            <code>detail.ratio</code> runs from <code>1</code> (fully open) to <code>0</code> (dismissed),
             letting you synchronize any custom visual to the gesture in real time.
           </p>
           <details class="mt-4">
@@ -351,7 +351,7 @@ new BootstrapSheet('#mySheet', { backdrop: false });</code></pre>
 mySheet.addEventListener('slide.bs.sheet', (e) => {
   const { ratio, velocity, deltaY } = e.detail;
 
-  // drive any visual with ratio 0→1
+  // drive any visual with ratio 1→0
   bar.style.width = (ratio * 100) + '%';
 });</code></pre>
           </details>
@@ -368,8 +368,8 @@ mySheet.addEventListener('slide.bs.sheet', (e) => {
                 <div class="ratio-fill" id="ratioFill"></div>
               </div>
               <div class="d-flex justify-content-between mt-1">
-                <span class="small text-muted">0 · fully open</span>
-                <span class="small text-muted">1 · dismissed</span>
+                <span class="small text-muted">0 · dismissed</span>
+                <span class="small text-muted">1 · fully open</span>
               </div>
             </div>
             <button type="button" class="btn btn-primary px-4" data-bs-toggle="sheet" data-bs-target="#sheet4"
