@@ -38,11 +38,21 @@ const filesToUpdate = [
 filesToUpdate.forEach((file) => {
   const filePath = path.join(rootDir, file.path);
 
-  if (!fs.existsSync(filePath)) {
-    return;
+  // Read straight away and handle a missing file from the failure, rather than
+  // asking whether it exists first: the answer can go stale between the two
+  // calls, and the read has to be guarded regardless.
+  let content;
+
+  try {
+    content = fs.readFileSync(filePath, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return;
+    }
+
+    throw error;
   }
 
-  let content = fs.readFileSync(filePath, 'utf8');
   let updated = false;
 
   file.patterns.forEach((pattern, index) => {
