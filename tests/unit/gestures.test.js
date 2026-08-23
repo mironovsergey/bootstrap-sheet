@@ -270,8 +270,9 @@ describe('BootstrapSheet - Gestures', () => {
 
     test('should not update position if sheet is not shown', () => {
       const sheet = createSheet({ withDragHandle: true });
-      // eslint-disable-next-line no-unused-vars
-      const instance = new BootstrapSheet(sheet, { gestures: true });
+
+      // Constructed but never shown, so no gesture handlers are attached
+      new BootstrapSheet(sheet, { gestures: true });
 
       const handle = sheet.querySelector('.sheet-handle');
 
