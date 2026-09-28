@@ -180,6 +180,77 @@ describe('BootstrapSheet - Events', () => {
       expect(sheet).toHaveClass(CLASS_NAME.SHOW);
     });
 
+    describe('on a swipe dismissal', () => {
+      /**
+       * Open a 400 px sheet and swipe it down far enough to dismiss it,
+       * pausing before the release so it carries no velocity
+       * @param {Object} options - Swipe options
+       * @param {Function} options.onHide - Listener for the hide event
+       * @param {Object} [options.config] - Sheet configuration
+       * @param {number} [options.distance] - Swipe distance after the slop (px)
+       * @returns {Promise<{ sheet: HTMLElement, instance: BootstrapSheet }>}
+       */
+      const openAndSwipeDown = async ({ onHide, config = {}, distance = 300 }) => {
+        const sheet = createSheet();
+
+        Object.defineProperty(sheet, 'offsetHeight', { configurable: true, value: 400 });
+
+        const instance = new BootstrapSheet(sheet, config);
+
+        instance.show();
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        sheet.addEventListener(EVENT.HIDE, onHide);
+
+        const originY = startDrag(sheet, { startY: 100 });
+
+        simulatePointerEvent(document, 'pointermove', { clientY: originY + distance });
+        jest.advanceTimersByTime(200);
+        simulatePointerEvent(document, 'pointerup', { clientY: originY + distance });
+
+        return { sheet, instance };
+      };
+
+      test('should fire on release, before the sheet leaves the screen', async () => {
+        const positions = [];
+
+        await openAndSwipeDown({
+          onHide() {
+            positions.push(this.style.transform);
+          },
+        });
+
+        expect(positions).toEqual(['translateY(300px)']);
+      });
+
+      test('should keep the sheet open when prevented', async () => {
+        const { sheet, instance } = await openAndSwipeDown({
+          onHide: (event) => event.preventDefault(),
+        });
+
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        expect(instance.isShown).toBe(true);
+        expect(sheet.style.transform).toBe('translateY(0px)');
+        expect(document.querySelector(`.${CLASS_NAME.BACKDROP}`).style.opacity).toBe('1');
+      });
+
+      test('should settle at the smallest detent when prevented', async () => {
+        const { sheet, instance } = await openAndSwipeDown({
+          onHide: (event) => event.preventDefault(),
+          config: { detents: [0.4, 1], initialDetent: 1 },
+          // Past the smallest detent (240 px) and nearer to closed (400 px)
+          distance: 380,
+        });
+
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        expect(instance.isShown).toBe(true);
+        expect(instance.currentDetent).toBe(0.4);
+        expect(sheet.style.transform).toBe('translateY(240px)');
+      });
+    });
+
     test('should bubble up the DOM', async () => {
       const sheet = createSheet();
       const instance = new BootstrapSheet(sheet);
