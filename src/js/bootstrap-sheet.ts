@@ -295,14 +295,7 @@ class BootstrapSheet {
       return;
     }
 
-    const hideEvent = this.#triggerEvent(EVENT.HIDE);
-
-    if (hideEvent.defaultPrevented) {
-      return;
-    }
-
-    this.#prepareHide();
-    this.#executeHide();
+    this.#requestHide();
   }
 
   /**
@@ -413,6 +406,25 @@ class BootstrapSheet {
   // ==================== Private Methods: Hide ====================
 
   /**
+   * Ask listeners whether the sheet may close, and close it if they agree
+   * @param initialVelocity - Velocity to start the close animation with (px/s)
+   * @returns Whether the sheet started closing
+   * @fires EVENT.HIDE
+   */
+  #requestHide(initialVelocity = 0): boolean {
+    const hideEvent = this.#triggerEvent(EVENT.HIDE);
+
+    if (hideEvent.defaultPrevented) {
+      return false;
+    }
+
+    this.#prepareHide();
+    this.#executeHide(initialVelocity);
+
+    return true;
+  }
+
+  /**
    * Prepare sheet state for hiding
    */
   #prepareHide(): void {
@@ -434,14 +446,15 @@ class BootstrapSheet {
 
   /**
    * Execute hide animation and cleanup
+   * @param initialVelocity - Velocity to start the close animation with (px/s)
    */
-  #executeHide(): void {
+  #executeHide(initialVelocity = 0): void {
     this.#detachEventHandlers();
     this.#disconnectResizeObserver();
     this.#cancelAnimations();
     this.#inert.remove();
 
-    this.#animateSpring(this.#sheetHeight, 0, () => this.#finalizeHide());
+    this.#animateSpring(this.#sheetHeight, initialVelocity, () => this.#finalizeHide());
   }
 
   /**
@@ -667,7 +680,12 @@ class BootstrapSheet {
         const target = this.#detents.resolve(projectedY, this.#sheetHeight);
 
         if (target.detent === null) {
-          this.#animateSpring(target.position, velocity, () => this.hide());
+          // Listeners are asked before the sheet leaves the screen. A vetoed
+          // dismissal settles at the nearest position the sheet may rest at:
+          // the release was projected past the smallest detent, so that one.
+          if (!this.#requestHide(velocity)) {
+            this.#animateToDetent(this.#detents.smallest, velocity);
+          }
         } else {
           this.#animateToDetent(target.detent, velocity);
         }
