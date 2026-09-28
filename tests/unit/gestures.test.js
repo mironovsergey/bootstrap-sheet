@@ -751,6 +751,86 @@ describe('BootstrapSheet - Gestures', () => {
     });
   });
 
+  describe('Drag during the open animation', () => {
+    /**
+     * Open a sheet and stop partway through the open animation
+     * @returns {{ sheet: HTMLElement, instance: BootstrapSheet }}
+     */
+    const openPartway = () => {
+      const sheet = createSheet();
+
+      Object.defineProperty(sheet, 'offsetHeight', { configurable: true, value: 400 });
+
+      const instance = new BootstrapSheet(sheet, { gestures: true });
+
+      instance.show();
+      jest.advanceTimersByTime(50);
+
+      return { sheet, instance };
+    };
+
+    /**
+     * Drag by a distance, pause so the release carries no velocity, release
+     * @param {HTMLElement} sheet - Sheet element
+     * @param {number} distance - Displacement after the slop (px, positive = down)
+     */
+    const dragAndRelease = (sheet, distance) => {
+      const originY = startDrag(sheet, { startY: 500, direction: distance < 0 ? 'up' : 'down' });
+
+      simulatePointerEvent(document, 'pointermove', { clientY: originY + distance });
+      jest.advanceTimersByTime(200);
+      simulatePointerEvent(document, 'pointerup', { clientY: originY + distance });
+    };
+
+    test('should complete the show when a drag takes over', () => {
+      const { sheet, instance } = openPartway();
+      const shown = jest.fn();
+
+      sheet.addEventListener('shown.bs.sheet', shown);
+
+      expect(instance.isTransitioning).toBe(true);
+      expect(getTranslateY(sheet)).toBeGreaterThan(0);
+
+      const originY = startDrag(sheet, { startY: 500 });
+
+      simulatePointerEvent(document, 'pointermove', { clientY: originY + 10 });
+
+      expect(instance.isTransitioning).toBe(false);
+      expect(shown).toHaveBeenCalledTimes(1);
+      expect(sheet).toHaveClass(CLASS_NAME.SHOW);
+      expect(sheet).not.toHaveClass(CLASS_NAME.SHOWING);
+      expect(sheet).not.toHaveClass(CLASS_NAME.ANIMATING);
+    });
+
+    test('should dismiss when released near the closed position', () => {
+      const { sheet, instance } = openPartway();
+      const hidden = jest.fn();
+
+      sheet.addEventListener('hidden.bs.sheet', hidden);
+
+      dragAndRelease(sheet, 20);
+      jest.advanceTimersByTime(TRANSITION_WAIT * 2);
+
+      expect(instance.isShown).toBe(false);
+      expect(hidden).toHaveBeenCalledTimes(1);
+      expect(document.querySelector(`.${CLASS_NAME.BACKDROP}`)).toBeNull();
+    });
+
+    test('should stay closable after settling open', () => {
+      const { sheet, instance } = openPartway();
+
+      dragAndRelease(sheet, -300);
+      jest.advanceTimersByTime(TRANSITION_WAIT);
+
+      expect(getTranslateY(sheet)).toBe(0);
+
+      instance.hide();
+      jest.advanceTimersByTime(TRANSITION_WAIT);
+
+      expect(instance.isShown).toBe(false);
+    });
+  });
+
   describe('Gesture arbitration with scrollable content', () => {
     const setup = () => {
       const sheet = createSheet({ withDragHandle: true });
