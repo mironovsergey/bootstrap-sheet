@@ -655,7 +655,7 @@ class BootstrapSheet {
       isEnabled: () => this.#state.isShown,
       onDragStart: () => this.#element.classList.add(CLASS_NAME.DRAGGING),
       onDragEnd: () => this.#element.classList.remove(CLASS_NAME.DRAGGING),
-      onTakeover: () => this.#springAnimator.cancel(),
+      onTakeover: () => this.#takeOver(),
       onMove: ({ adjustedY, deltaY, ratio, velocity }) => {
         this.#element.style.transform = `translateY(${adjustedY}px)`;
 
@@ -676,6 +676,22 @@ class BootstrapSheet {
     });
 
     this.#dragController.attach();
+  }
+
+  /**
+   * Hand the transform over to a drag gesture.
+   *
+   * A drag may begin while the open animation is still running. Cancelling the
+   * spring drops its settle callback, so the show is completed here instead:
+   * once the sheet is in the user's hands the open transition is over, and
+   * leaving it pending would block `hide()` for good.
+   */
+  #takeOver(): void {
+    this.#cancelAnimations();
+
+    if (this.#state.isTransitioning) {
+      this.#finalizeShow();
+    }
   }
 
   /**
