@@ -1,8 +1,10 @@
 /**
  * Timer budget for show/hide animations in tests.
- * The spring with default params settles well within this window.
+ * With default params the spring takes about 670 ms to settle over the full
+ * height of a sheet; the time grows only logarithmically with that height.
+ * The budget leaves a margin on top.
  */
-export const TRANSITION_WAIT = 350;
+export const TRANSITION_WAIT = 1000;
 
 /**
  * Distance the pointer must travel before a gesture counts as a drag.

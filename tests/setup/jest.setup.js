@@ -69,11 +69,27 @@ global.DOMMatrix = class DOMMatrix {
   }
 };
 
+/**
+ * Transform the stylesheet gives an element that has no inline transform.
+ *
+ * jsdom applies no CSS, so the stylesheet's `.sheet { transform:
+ * translateY(100%) }` and `.sheet.show { transform: translateY(0) }` are
+ * emulated here. Without it a closed sheet would report the open position and
+ * every show animation would start where it ends.
+ */
+const stylesheetTransform = (element) => {
+  if (!element.classList.contains('sheet') || element.classList.contains('show')) {
+    return 'none';
+  }
+
+  return `translateY(${element.offsetHeight}px)`;
+};
+
 // Mock getComputedStyle to return transform values
 const originalGetComputedStyle = window.getComputedStyle;
 window.getComputedStyle = function (element) {
   const styles = originalGetComputedStyle(element);
-  const transform = element.style.transform || 'none';
+  const transform = element.style.transform || stylesheetTransform(element);
 
   return {
     ...styles,
