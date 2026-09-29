@@ -55,6 +55,5 @@
       - any-glob-to-any-file:
           - '*.config.js'
           - '*.config.mjs'
-          - '.eslintrc*'
           - '.prettierrc*'
           - '.editorconfig'
