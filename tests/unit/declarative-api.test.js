@@ -337,6 +337,44 @@ describe('BootstrapSheet - Declarative API', () => {
 
       expect(instance.isShown).toBe(false);
     });
+
+    test('should open a sheet that declares data-bs-detents', async () => {
+      const sheet = createSheet({
+        id: 'mySheet',
+        dataAttributes: {
+          detents: '0.4,1',
+        },
+      });
+      const trigger = createTrigger('mySheet');
+
+      trigger.click();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      const instance = BootstrapSheet.getInstance(sheet);
+
+      expect(instance.isShown).toBe(true);
+      expect(instance.currentDetent).toBe(0.4);
+    });
+
+    test('should apply data-bs-detents declared on the trigger', async () => {
+      const sheet = createSheet({
+        id: 'mySheet',
+        dataAttributes: {
+          detents: '0.4,1',
+        },
+      });
+      const trigger = createTrigger('mySheet', {
+        detents: '[0.5, 1]', // Overrides sheet
+      });
+
+      trigger.click();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      const instance = BootstrapSheet.getInstance(sheet);
+
+      expect(instance.isShown).toBe(true);
+      expect(instance.currentDetent).toBe(0.5);
+    });
   });
 
   describe('Multiple triggers for one sheet', () => {
