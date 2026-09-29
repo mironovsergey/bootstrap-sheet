@@ -208,62 +208,151 @@ describe('BootstrapSheet - Keyboard Navigation', () => {
   });
 
   describe('Multiple sheet instances', () => {
-    test('should close both sheets on ESC when both have keyboard=true', async () => {
-      const sheet1 = createSheet({ id: 'sheet1' });
-      const sheet2 = createSheet({ id: 'sheet2' });
-
-      const instance1 = new BootstrapSheet(sheet1, { keyboard: true });
-      const instance2 = new BootstrapSheet(sheet2, { keyboard: true });
-
-      // Show both sheets
-      instance1.show();
-      await advanceTimersAndFlush(TRANSITION_WAIT);
-
-      instance2.show();
-      await advanceTimersAndFlush(TRANSITION_WAIT);
-
-      expect(instance1.isShown).toBe(true);
-      expect(instance2.isShown).toBe(true);
-
-      // Press ESC - both sheets will handle the event
-      const escapeEvent = new KeyboardEvent('keydown', {
-        key: 'Escape',
-        bubbles: true,
+    /**
+     * Show a lower and an upper sheet, one after the other
+     * @param {Object} upperConfig - Config of the sheet shown last
+     * @returns {Promise<{ lower: BootstrapSheet, upper: BootstrapSheet }>}
+     */
+    const openTwoSheets = async (upperConfig = {}) => {
+      const lower = new BootstrapSheet(createSheet({ id: 'lower' }), { keyboard: true });
+      const upper = new BootstrapSheet(createSheet({ id: 'upper' }), {
+        keyboard: true,
+        ...upperConfig,
       });
-      document.dispatchEvent(escapeEvent);
 
+      lower.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      // Both sheets will respond to ESC since they both have keyboard=true
-      // and both listen to document keydown events
-      expect(instance1.isShown).toBe(false);
-      expect(instance2.isShown).toBe(false);
+      upper.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      return { lower, upper };
+    };
+
+    /**
+     * Press Escape on the document and let any animation settle
+     */
+    const pressEscape = async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+    };
+
+    test('should close only the topmost sheet on ESC', async () => {
+      const { lower, upper } = await openTwoSheets();
+
+      await pressEscape();
+
+      expect(upper.isShown).toBe(false);
+      expect(lower.isShown).toBe(true);
     });
 
-    test('should not interfere with other sheets when keyboard=false', async () => {
-      const sheet1 = createSheet({ id: 'sheet1' });
-      const sheet2 = createSheet({ id: 'sheet2' });
+    test('should close the next sheet down on the following ESC', async () => {
+      const { lower } = await openTwoSheets();
 
-      const instance1 = new BootstrapSheet(sheet1, { keyboard: true });
-      const instance2 = new BootstrapSheet(sheet2, { keyboard: false });
+      await pressEscape();
+      await pressEscape();
 
-      instance1.show();
+      expect(lower.isShown).toBe(false);
+    });
+
+    test('should not close a sheet underneath one with keyboard=false', async () => {
+      const { lower, upper } = await openTwoSheets({ keyboard: false });
+
+      await pressEscape();
+
+      expect(upper.isShown).toBe(true);
+      expect(lower.isShown).toBe(true);
+    });
+
+    test('should skip a sheet removed from the page while open', async () => {
+      const { lower } = await openTwoSheets();
+
+      document.getElementById('upper').remove();
+
+      await pressEscape();
+
+      expect(lower.isShown).toBe(false);
+    });
+  });
+
+  describe('ESC handled elsewhere', () => {
+    test('should ignore ESC already handled inside the sheet', async () => {
+      const sheet = createSheet();
+      const instance = new BootstrapSheet(sheet, { keyboard: true });
+      const input = document.createElement('input');
+
+      sheet.querySelector('.sheet-body').appendChild(input);
+      input.addEventListener('keydown', (event) => event.preventDefault());
+
+      instance.show();
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      instance2.show();
+      input.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      );
       await advanceTimersAndFlush(TRANSITION_WAIT);
 
-      const escapeEvent = new KeyboardEvent('keydown', {
-        key: 'Escape',
-        bubbles: true,
+      expect(instance.isShown).toBe(true);
+    });
+
+    test('should ignore ESC while text is being composed', async () => {
+      const sheet = createSheet();
+      const instance = new BootstrapSheet(sheet, { keyboard: true });
+
+      instance.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, isComposing: true }),
+      );
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      expect(instance.isShown).toBe(true);
+    });
+
+    describe('while non-modal', () => {
+      /**
+       * Show a sheet resting at an undimmed detent
+       * @returns {Promise<{ sheet: HTMLElement, instance: BootstrapSheet }>}
+       */
+      const openNonModal = async () => {
+        const sheet = createSheet();
+        const instance = new BootstrapSheet(sheet, {
+          keyboard: true,
+          detents: [0.4, 1],
+          undimmedDetent: 0.4,
+        });
+
+        instance.show();
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        return { sheet, instance };
+      };
+
+      test('should ignore ESC pressed on the page', async () => {
+        const outside = document.createElement('button');
+
+        document.body.appendChild(outside);
+
+        const { instance } = await openNonModal();
+
+        outside.focus();
+        outside.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        expect(instance.isShown).toBe(true);
       });
-      document.dispatchEvent(escapeEvent);
 
-      await advanceTimersAndFlush(TRANSITION_WAIT);
+      test('should close on ESC pressed inside the sheet', async () => {
+        const { sheet, instance } = await openNonModal();
+        const button = sheet.querySelector('.btn-close');
 
-      // instance1 should close, instance2 should remain open
-      expect(instance1.isShown).toBe(false);
-      expect(instance2.isShown).toBe(true);
+        button.focus();
+        button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        expect(instance.isShown).toBe(false);
+      });
     });
   });
 

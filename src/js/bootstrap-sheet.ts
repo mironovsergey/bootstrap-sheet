@@ -37,6 +37,11 @@ interface SheetHandlers {
  * @license MIT (https://github.com/mironovsergey/bootstrap-sheet/blob/main/LICENSE)
  */
 class BootstrapSheet {
+  // ==================== Shared state ====================
+
+  /** Open sheets in the order they were shown; the last one is on top */
+  static #openSheets: BootstrapSheet[] = [];
+
   // ==================== Core elements ====================
 
   /** Sheet element */
@@ -354,6 +359,41 @@ class BootstrapSheet {
     );
   }
 
+  // ==================== Private Methods: Open Sheets ====================
+
+  /**
+   * Record the sheet as open, on top of all other open sheets
+   */
+  #registerOpenSheet(): void {
+    // Sheets removed from the document while open never closed; forget them
+    BootstrapSheet.#openSheets = BootstrapSheet.#openSheets.filter(
+      (openSheet) => openSheet !== this && openSheet.#element.isConnected,
+    );
+
+    BootstrapSheet.#openSheets.push(this);
+  }
+
+  /**
+   * Stop tracking the sheet as open
+   */
+  #unregisterOpenSheet(): void {
+    BootstrapSheet.#openSheets = BootstrapSheet.#openSheets.filter(
+      (openSheet) => openSheet !== this,
+    );
+  }
+
+  /**
+   * Whether the sheet is the open one on top of all others. Sheets removed
+   * from the document while open are skipped.
+   */
+  #isTopmostOpenSheet(): boolean {
+    const connectedSheets = BootstrapSheet.#openSheets.filter(
+      (openSheet) => openSheet.#element.isConnected,
+    );
+
+    return connectedSheets[connectedSheets.length - 1] === this;
+  }
+
   // ==================== Private Methods: Show ====================
 
   /**
@@ -362,6 +402,7 @@ class BootstrapSheet {
   #prepareShow(): void {
     this.#state.isShown = true;
     this.#state.isTransitioning = true;
+    this.#registerOpenSheet();
     this.#focusTrap.capture();
     this.#currentDetent = this.#resolveInitialDetent();
     this.#sheetHeight = this.#measureHeight();
@@ -431,6 +472,7 @@ class BootstrapSheet {
   #prepareHide(): void {
     this.#state.isShown = false;
     this.#state.isTransitioning = true;
+    this.#unregisterOpenSheet();
 
     if (this.#dragController?.isDragging) {
       this.#dragController.abort();
@@ -567,7 +609,13 @@ class BootstrapSheet {
   }
 
   /**
-   * Attach Escape key handler to close the sheet
+   * Attach Escape key handler to close the sheet.
+   *
+   * Only the sheet on top answers: the ones underneath stay open, even when
+   * the top one ignores Escape. A keypress that something else already
+   * handled, or one that belongs to an IME composition, is left alone. A
+   * non-modal sheet leaves the page live, so Escape pressed on the page
+   * belongs to the page.
    */
   #attachEscapeHandler(): void {
     if (!this.#config.keyboard) {
@@ -575,12 +623,22 @@ class BootstrapSheet {
     }
 
     this.#handlers.escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (this.#config.backdrop === 'static') {
-          this.#shakeSheet();
-        } else {
-          this.hide();
-        }
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) {
+        return;
+      }
+
+      if (!this.#isTopmostOpenSheet()) {
+        return;
+      }
+
+      if (!this.#modal && !this.#element.contains(document.activeElement)) {
+        return;
+      }
+
+      if (this.#config.backdrop === 'static') {
+        this.#shakeSheet();
+      } else {
+        this.hide();
       }
     };
 
@@ -990,6 +1048,7 @@ class BootstrapSheet {
     // Reset state
     this.#state.isShown = false;
     this.#state.isTransitioning = false;
+    this.#unregisterOpenSheet();
 
     this.#scrollBar.reset();
     this.#removeBackdrop();
