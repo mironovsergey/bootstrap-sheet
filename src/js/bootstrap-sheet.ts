@@ -1051,14 +1051,19 @@ document.addEventListener('click', (event) => {
   let sheetInstance = BootstrapSheet.getInstance(sheetElement);
 
   if (!sheetInstance) {
-    const sheetConfig = extractDataAttributes(sheetElement);
-    const triggerConfig = extractDataAttributes(trigger);
-    const mergedConfig: Record<string, unknown> = { ...sheetConfig, ...triggerConfig };
+    // The constructor reads the sheet's own data attributes; only the
+    // trigger's are passed, and they take precedence over the sheet's
+    const triggerConfig: Record<string, unknown> = extractDataAttributes(trigger);
+
+    // Data attributes arrive as strings; normalize before the type check
+    if ('detents' in triggerConfig) {
+      triggerConfig.detents = parseDetents(triggerConfig.detents);
+    }
 
     // Runtime-validates the parsed attributes and narrows them to typed options
-    validateConfigTypes<BootstrapSheetOptions>(NAME, mergedConfig, DefaultType);
+    validateConfigTypes<BootstrapSheetOptions>(NAME, triggerConfig, DefaultType);
 
-    sheetInstance = new BootstrapSheet(sheetElement, mergedConfig);
+    sheetInstance = new BootstrapSheet(sheetElement, triggerConfig);
   }
 
   sheetInstance.toggle();
