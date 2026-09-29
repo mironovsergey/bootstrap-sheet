@@ -10,7 +10,11 @@ import { getScrollbarWidth } from './utils';
 export default class ScrollBarHelper {
   /**
    * Disable body scrolling and compensate for the scrollbar width.
-   * Does nothing when the page does not overflow or has no visible scrollbar.
+   *
+   * Scrolling is disabled unconditionally. Only the compensation depends on
+   * the scrollbar: it is skipped when the page does not overflow or when its
+   * scrollbar takes no space, as overlay scrollbars on touch devices and
+   * macOS do.
    */
   hide(): void {
     const isOverflowing = document.body.scrollHeight > window.innerHeight;
@@ -20,9 +24,10 @@ export default class ScrollBarHelper {
 
       if (scrollbarWidth > 0) {
         document.body.style.paddingRight = `${scrollbarWidth}px`;
-        document.body.style.overflow = 'hidden';
       }
     }
+
+    document.body.style.overflow = 'hidden';
   }
 
   /**

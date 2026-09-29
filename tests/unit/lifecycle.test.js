@@ -567,4 +567,40 @@ describe('BootstrapSheet - Lifecycle', () => {
       expect(sheet.getBoundingClientRect).toHaveBeenCalled();
     });
   });
+
+  describe('Page scroll lock', () => {
+    /**
+     * Make the page overflow the viewport, with a scrollbar of the given width
+     * @param {number} width - Scrollbar width (px); 0 for overlay scrollbars
+     */
+    const mockPageScrollbar = (width) => {
+      Object.defineProperty(document.body, 'scrollHeight', { configurable: true, value: 2000 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+
+      jest.spyOn(require('../../src/js/utils'), 'getScrollbarWidth').mockReturnValue(width);
+    };
+
+    /**
+     * Show a sheet and let its animation settle
+     * @param {string} id - Sheet ID
+     * @returns {Promise<BootstrapSheet>} The instance
+     */
+    const openSheet = async (id) => {
+      const instance = new BootstrapSheet(createSheet({ id }));
+
+      instance.show();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+
+      return instance;
+    };
+
+    test('should lock page scrolling when the scrollbar takes no space', async () => {
+      mockPageScrollbar(0);
+
+      await openSheet('sheet');
+
+      expect(document.body.style.overflow).toBe('hidden');
+      expect(document.body.style.paddingRight).toBe('');
+    });
+  });
 });
