@@ -1,12 +1,12 @@
-# JavaScript files
+# Component script sources
 'javascript':
   - changed-files:
-      - any-glob-to-any-file: 'src/js/**/*.js'
+      - any-glob-to-any-file: 'src/js/**/*'
 
-# TypeScript definitions
+# TypeScript configuration; type declarations are generated from it
 'typescript':
   - changed-files:
-      - any-glob-to-any-file: 'src/types/**/*.d.ts'
+      - any-glob-to-any-file: 'tsconfig*.json'
 
 # CSS/SCSS files
 'css':
