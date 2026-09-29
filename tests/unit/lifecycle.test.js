@@ -594,6 +594,15 @@ describe('BootstrapSheet - Lifecycle', () => {
       return instance;
     };
 
+    /**
+     * Hide a sheet and let its animation settle
+     * @param {BootstrapSheet} instance - The instance
+     */
+    const closeSheet = async (instance) => {
+      instance.hide();
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+    };
+
     test('should lock page scrolling when the scrollbar takes no space', async () => {
       mockPageScrollbar(0);
 
@@ -601,6 +610,87 @@ describe('BootstrapSheet - Lifecycle', () => {
 
       expect(document.body.style.overflow).toBe('hidden');
       expect(document.body.style.paddingRight).toBe('');
+    });
+
+    test('should keep the page locked until the last open sheet closes', async () => {
+      mockPageScrollbar(15);
+
+      const lower = await openSheet('lower');
+      const upper = await openSheet('upper');
+
+      await closeSheet(upper);
+
+      expect(document.body.style.overflow).toBe('hidden');
+      expect(document.body.style.paddingRight).toBe('15px');
+
+      await closeSheet(lower);
+
+      expect(document.body.style.overflow).toBe('');
+      expect(document.body.style.paddingRight).toBe('');
+    });
+
+    test('should keep the page locked when the lower sheet closes first', async () => {
+      mockPageScrollbar(15);
+
+      const lower = await openSheet('lower');
+      const upper = await openSheet('upper');
+
+      await closeSheet(lower);
+
+      expect(document.body.style.overflow).toBe('hidden');
+
+      await closeSheet(upper);
+
+      expect(document.body.style.overflow).toBe('');
+    });
+
+    test('should restore the inline styles the page had before', async () => {
+      mockPageScrollbar(15);
+
+      document.body.style.overflow = 'scroll';
+      document.body.style.paddingRight = '7px';
+
+      const instance = await openSheet('sheet');
+
+      expect(document.body.style.overflow).toBe('hidden');
+      expect(document.body.style.paddingRight).toBe('22px');
+
+      await closeSheet(instance);
+
+      expect(document.body.style.overflow).toBe('scroll');
+      expect(document.body.style.paddingRight).toBe('7px');
+    });
+
+    test('should not pad a page whose scrolling is already disabled', async () => {
+      mockPageScrollbar(15);
+
+      // Left by a lock taken before the sheet opened, such as a Bootstrap
+      // modal's. jsdom computes overflow-y only from the longhand.
+      document.body.style.overflowY = 'hidden';
+      document.body.style.paddingRight = '15px';
+
+      const instance = await openSheet('sheet');
+
+      expect(document.body.style.paddingRight).toBe('15px');
+
+      await closeSheet(instance);
+
+      expect(document.body.style.paddingRight).toBe('15px');
+    });
+
+    test('should not stay locked by a sheet removed from the page while open', async () => {
+      mockPageScrollbar(15);
+
+      const removed = await openSheet('removed');
+
+      document.getElementById('removed').remove();
+
+      const other = await openSheet('other');
+
+      await closeSheet(other);
+
+      expect(removed.isShown).toBe(true);
+      expect(document.body.style.overflow).toBe('');
     });
   });
 });
