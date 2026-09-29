@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-09-29
+
+### Fixed
+
+**Dragging a sheet while it was still opening left it impossible to close.**
+
+A drag that starts during the open animation takes over the sheet's position, and doing so cancelled the animation together with the step that completes the show. The sheet stayed in its opening state for good: `shown.bs.sheet` never fired, focus never moved into the sheet, `isTransitioning` remained `true`, and since `hide()` does nothing while a transition is in progress, neither the close button, nor Escape, nor the backdrop, nor the API could close it any more. Releasing the drag close to the bottom made it worse: the sheet slid off-screen while the backdrop, the inert background and the focus trap stayed in place, leaving the page unusable.
+
+A drag that takes over the open animation now completes the show on the spot - `shown.bs.sheet` fires and focus moves into the sheet - and the gesture carries on from there. The `animating` class is removed at the same moment, since no animation runs while the finger holds the sheet.
+
+**Preventing `hide.bs.sheet` after a swipe left the sheet stranded off-screen.**
+
+A swipe that dismissed the sheet first animated it all the way off-screen and only then fired `hide.bs.sheet`. A listener that called `preventDefault()` - to ask for confirmation of unsaved changes, for example - vetoed a close that had visibly already happened: the sheet stayed below the screen edge with a transparent backdrop, `isShown` still `true`, and the page behind it inert.
+
+`hide.bs.sheet` now fires the moment a swipe is released toward dismissal, while the sheet is still where the finger left it. If the event is prevented, the sheet settles at its smallest detent, the nearest position it may rest at: with the default single detent that is simply fully open, and with several detents `detentchange.bs.sheet` fires when the smallest one differs from where the sheet rested before the swipe. Otherwise the close animation starts from the release velocity, so a flick carries through in one continuous motion instead of two animations back to back. As with `hide()`, dragging is disabled as soon as the sheet starts closing, so a sheet released toward dismissal can no longer be caught mid-flight.
+
+**A sheet with `data-bs-detents` could not be opened by a `data-bs-toggle` trigger.**
+
+The trigger's click handler type-checked the data attributes before the `detents` list was parsed from its string form, so `data-bs-detents="0.4,1"` failed the check as a string and threw a `TypeError`: the sheet never opened. Sheets created from JavaScript were unaffected. `data-bs-detents` now works on the sheet and on the trigger alike, with the trigger's value taking precedence, as for every other option.
+
+**The page behind an open sheet kept scrolling on phones and tablets.**
+
+Page scrolling was locked only together with the padding that compensates for the width of the page scrollbar, and that compensation is skipped when the scrollbar takes no space. Overlay scrollbars take none - on iOS, on Android and on macOS with its default settings - so on exactly the devices a bottom sheet is made for, the page behind a modal sheet stayed scrollable. Scrolling is now locked whenever a sheet presents modally; only the compensating padding still depends on the scrollbar.
+
+**Closing one sheet unlocked the page while another was still open, and closing any sheet wiped the page's own body styles.**
+
+Each sheet managed the page lock on its own, and releasing it simply cleared `overflow` and `padding-right` on `<body>`. With two sheets open, closing either one made the page scrollable behind the one still showing, and values the page had set inline on `<body>` itself were lost after the first sheet closed.
+
+The lock is now shared by all sheets: it is applied by the first sheet that needs it and released by the last one, in whatever order they close, and releasing it restores the inline values that were there before rather than clearing them. The compensating padding is added to the body's existing padding instead of replacing it, and none is added when page scrolling is already disabled - by a Bootstrap modal the sheet opens over, for example - since such a page has no scrollbar left to replace. A sheet removed from the page while open no longer holds the lock indefinitely.
+
+**Escape closed every open sheet at once.**
+
+Each sheet listened for Escape on the whole document, so with one sheet opened on top of another a single keypress closed both. Only the sheet on top now responds; the next Escape closes the one below it. When the top sheet has `keyboard: false`, the sheets underneath stay open as well, since closing them out from under it would be the wrong thing to do.
+
+Escape is also left alone when something else has already handled it - a dropdown or an autocomplete inside the sheet that called `preventDefault()` - and while an input method is composing text, where Escape cancels the composition. A sheet resting at a non-modal detent (`undimmedDetent`) responds only while focus is inside it: the page behind it is live, and Escape pressed there belongs to the page.
+
+**A closed sheet stayed reachable by keyboard and screen readers.**
+
+A closed sheet was only moved below the screen edge with `transform`. Its content remained in the accessibility tree, so screen readers announced it as part of the page, and its buttons, links and inputs stayed in the tab order - pressing Tab could move focus into an invisible sheet. A closed sheet is now `visibility: hidden`, which removes it from both; it is visible from the moment it starts opening until it has finished closing (the `showing`, `show` and `hiding` states).
+
+**Importing the package during server-side rendering threw `ReferenceError: HTMLElement is not defined`.**
+
+Frameworks that render on the server - Next.js, Nuxt, Astro, SvelteKit - evaluate imported modules in Node, where there is no DOM. The module touched the DOM as soon as it loaded, both to detect `inert` support and to register the click handler for `data-bs-toggle`, so a plain `import BootstrapSheet from 'bootstrap-sheet'` failed the whole server build. Both now happen only in a browser, and the ES module can be imported anywhere; the component is still meant to be used only in the browser.
+
+**`import 'bootstrap-sheet'` was dropped by bundlers.**
+
+The package declared that only its stylesheets have side effects. The script has one as well - it registers the document-level click handler behind `data-bs-toggle="sheet"` - so a bare `import 'bootstrap-sheet'`, the natural way to enable the data API without touching the class, was removed entirely by tree-shaking in webpack and Rollup, and the triggers did nothing. The script bundles are now declared as having side effects.
+
+---
+
 ## [0.5.0] - 2026-08-09
 
 ### Added
@@ -226,6 +276,7 @@ The following options now emit a console warning and will be removed in v0.3.0. 
 - Static backdrop mode for confirmations
 - Customizable animation duration
 
+[0.5.1]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/mironovsergey/bootstrap-sheet/compare/v0.3.0...v0.3.1
