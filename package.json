@@ -27,7 +27,8 @@
   },
   "sideEffects": [
     "*.css",
-    "*.scss"
+    "*.scss",
+    "./dist/js/*.js"
   ],
   "scripts": {
     "dev": "concurrently \"npm:dev:*\"",
