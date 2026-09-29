@@ -45,6 +45,9 @@
   box-shadow: none;
   will-change: transform;
   transform: translateY(100%);
+  // Moving a closed sheet out of view is not enough: hiding it also removes
+  // its content from the accessibility tree and the tab order.
+  visibility: hidden;
   // The whole sheet is draggable vertically; horizontal gestures (carousels,
   // sliders) stay native. touch-action only narrows down the ancestor chain,
   // so the root is the authoritative place to declare it.
@@ -69,6 +72,12 @@
   }
 
   // State classes
+  &.show,
+  &.showing,
+  &.hiding {
+    visibility: visible;
+  }
+
   &.show {
     transform: translateY(0);
   }

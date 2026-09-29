@@ -1,3 +1,5 @@
+import path from 'path';
+import { compile } from 'sass';
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { CLASS_NAME, SELECTOR } from '../../src/js/constants';
 import {
@@ -708,6 +710,56 @@ describe('BootstrapSheet - Focus Management', () => {
       expect(() => {
         instance.hide();
       }).not.toThrow();
+    });
+  });
+
+  describe('Closed sheet', () => {
+    /** The bundled stylesheet, which jsdom cascades for `visibility` */
+    let stylesheet;
+
+    beforeAll(() => {
+      stylesheet = document.createElement('style');
+      stylesheet.textContent = compile(
+        path.resolve(__dirname, '../../src/scss/bootstrap-sheet.scss'),
+      ).css;
+      document.head.appendChild(stylesheet);
+    });
+
+    afterAll(() => {
+      stylesheet.remove();
+    });
+
+    /**
+     * @param {Element} element - Element to inspect
+     * @returns {string} Computed visibility
+     */
+    const visibilityOf = (element) =>
+      window.getComputedStyle(element).getPropertyValue('visibility');
+
+    test('should be hidden from assistive technology and the tab order', () => {
+      const sheet = createSheet();
+
+      new BootstrapSheet(sheet);
+
+      expect(visibilityOf(sheet)).toBe('hidden');
+      expect(visibilityOf(sheet.querySelector('.btn-close'))).toBe('hidden');
+    });
+
+    test('should be visible from the start of showing to the end of hiding', async () => {
+      const sheet = createSheet();
+      const instance = new BootstrapSheet(sheet);
+
+      instance.show();
+      expect(visibilityOf(sheet)).toBe('visible');
+
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+      expect(visibilityOf(sheet)).toBe('visible');
+
+      instance.hide();
+      expect(visibilityOf(sheet)).toBe('visible');
+
+      await advanceTimersAndFlush(TRANSITION_WAIT);
+      expect(visibilityOf(sheet)).toBe('hidden');
     });
   });
 
