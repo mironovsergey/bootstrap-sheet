@@ -1,9 +1,49 @@
-export default {
-  // Use jsdom environment for DOM testing
-  testEnvironment: 'jsdom',
+/**
+ * Settings shared by every test project
+ */
+const sharedProjectConfig = {
+  // Transform configuration
+  transform: {
+    '^.+\\.[jt]s$': 'babel-jest',
+  },
 
-  // Setup files
-  setupFilesAfterEnv: ['<rootDir>/tests/setup/jest.setup.js'],
+  // Clear mocks between tests
+  clearMocks: true,
+  resetMocks: true,
+  restoreMocks: true,
+};
+
+export default {
+  projects: [
+    {
+      ...sharedProjectConfig,
+      displayName: 'dom',
+
+      // Use jsdom environment for DOM testing
+      testEnvironment: 'jsdom',
+
+      // Setup files
+      setupFilesAfterEnv: ['<rootDir>/tests/setup/jest.setup.js'],
+
+      // Module paths
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/js/$1',
+      },
+
+      // Test match patterns
+      testMatch: ['<rootDir>/tests/unit/**/*.test.{js,ts}'],
+    },
+    {
+      ...sharedProjectConfig,
+      displayName: 'ssr',
+
+      // No DOM at all, as when a server-side renderer imports the module
+      testEnvironment: 'node',
+
+      // Test match patterns
+      testMatch: ['<rootDir>/tests/ssr/**/*.test.{js,ts}'],
+    },
+  ],
 
   // Coverage configuration
   collectCoverageFrom: ['src/js/**/*.{js,ts}', '!src/js/**/*.test.{js,ts}', '!**/node_modules/**'],
@@ -19,24 +59,6 @@ export default {
 
   coverageReporters: ['text', 'lcov', 'html'],
 
-  // Module paths
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/js/$1',
-  },
-
-  // Transform configuration
-  transform: {
-    '^.+\\.[jt]s$': 'babel-jest',
-  },
-
-  // Test match patterns
-  testMatch: ['<rootDir>/tests/**/*.test.{js,ts}'],
-
   // Verbose output
   verbose: true,
-
-  // Clear mocks between tests
-  clearMocks: true,
-  resetMocks: true,
-  restoreMocks: true,
 };

@@ -1,7 +1,5 @@
 import { FOCUSABLE_SELECTOR } from './constants';
 
-const SUPPORTS_INERT = 'inert' in HTMLElement.prototype;
-
 /**
  * Previous accessibility state of a node hidden from assistive technology
  */
@@ -245,7 +243,7 @@ export class InertManager {
       return;
     }
 
-    if (SUPPORTS_INERT && node instanceof HTMLElement) {
+    if (InertManager.#supportsInert() && node instanceof HTMLElement) {
       this.#inertedNodes.set(node, { kind: 'inert', value: node.inert });
       node.inert = true;
     } else {
@@ -255,5 +253,15 @@ export class InertManager {
       });
       node.setAttribute('aria-hidden', 'true');
     }
+  }
+
+  /**
+   * Whether the browser supports the `inert` attribute.
+   *
+   * Checked when needed rather than when the module loads, so the module can
+   * be imported where there is no DOM, as during server-side rendering.
+   */
+  static #supportsInert(): boolean {
+    return 'inert' in HTMLElement.prototype;
   }
 }

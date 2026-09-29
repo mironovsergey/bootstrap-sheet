@@ -1080,54 +1080,57 @@ class BootstrapSheet {
 
 // ==================== Global Initialization ====================
 
-/**
- * Global click handler to toggle sheets via data attributes
- */
-document.addEventListener('click', (event) => {
-  if (!(event.target instanceof Element)) {
-    return;
-  }
-
-  const trigger = event.target.closest(SELECTOR.DATA_TOGGLE);
-
-  if (!trigger) {
-    return;
-  }
-
-  event.preventDefault();
-
-  const targetSelector = extractTargetSelector(trigger);
-
-  if (!targetSelector) {
-    return;
-  }
-
-  const sheetElement = document.querySelector(targetSelector);
-
-  if (!(sheetElement instanceof HTMLElement)) {
-    return;
-  }
-
-  let sheetInstance = BootstrapSheet.getInstance(sheetElement);
-
-  if (!sheetInstance) {
-    // The constructor reads the sheet's own data attributes; only the
-    // trigger's are passed, and they take precedence over the sheet's
-    const triggerConfig: Record<string, unknown> = extractDataAttributes(trigger);
-
-    // Data attributes arrive as strings; normalize before the type check
-    if ('detents' in triggerConfig) {
-      triggerConfig.detents = parseDetents(triggerConfig.detents);
+// Server-side renderers import the module where there is no document
+if (typeof document !== 'undefined') {
+  /**
+   * Global click handler to toggle sheets via data attributes
+   */
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) {
+      return;
     }
 
-    // Runtime-validates the parsed attributes and narrows them to typed options
-    validateConfigTypes<BootstrapSheetOptions>(NAME, triggerConfig, DefaultType);
+    const trigger = event.target.closest(SELECTOR.DATA_TOGGLE);
 
-    sheetInstance = new BootstrapSheet(sheetElement, triggerConfig);
-  }
+    if (!trigger) {
+      return;
+    }
 
-  sheetInstance.toggle();
-});
+    event.preventDefault();
+
+    const targetSelector = extractTargetSelector(trigger);
+
+    if (!targetSelector) {
+      return;
+    }
+
+    const sheetElement = document.querySelector(targetSelector);
+
+    if (!(sheetElement instanceof HTMLElement)) {
+      return;
+    }
+
+    let sheetInstance = BootstrapSheet.getInstance(sheetElement);
+
+    if (!sheetInstance) {
+      // The constructor reads the sheet's own data attributes; only the
+      // trigger's are passed, and they take precedence over the sheet's
+      const triggerConfig: Record<string, unknown> = extractDataAttributes(trigger);
+
+      // Data attributes arrive as strings; normalize before the type check
+      if ('detents' in triggerConfig) {
+        triggerConfig.detents = parseDetents(triggerConfig.detents);
+      }
+
+      // Runtime-validates the parsed attributes and narrows them to typed options
+      validateConfigTypes<BootstrapSheetOptions>(NAME, triggerConfig, DefaultType);
+
+      sheetInstance = new BootstrapSheet(sheetElement, triggerConfig);
+    }
+
+    sheetInstance.toggle();
+  });
+}
 
 // ==================== Export ====================
 
