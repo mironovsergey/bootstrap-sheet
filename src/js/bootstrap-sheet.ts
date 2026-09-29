@@ -48,8 +48,8 @@ class BootstrapSheet {
   /** Backdrop helper instance */
   #backdrop: Backdrop | null = null;
 
-  /** Body scrollbar compensation helper */
-  #scrollBar = new ScrollBarHelper();
+  /** Page scroll lock shared with other sheets */
+  #scrollBar: ScrollBarHelper;
 
   /** Drag gesture controller (attached while shown) */
   #dragController: DragController | null = null;
@@ -126,6 +126,7 @@ class BootstrapSheet {
     this.#element = resolvedElement;
     this.#config = Default;
     this.#focusTrap = new FocusTrap({ trapElement: resolvedElement });
+    this.#scrollBar = new ScrollBarHelper(resolvedElement);
     this.#detents = new DetentModel(Default.detents);
     this.#currentDetent = this.#detents.smallest;
 
