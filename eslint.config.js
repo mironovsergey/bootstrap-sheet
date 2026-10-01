@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -29,17 +30,6 @@ export default [
       '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/ban-ts-comment': 'error',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
-      semi: ['error', 'always'],
-      quotes: ['error', 'single', { avoidEscape: true }],
-      indent: ['error', 2, { SwitchCase: 1 }],
-      'space-before-function-paren': [
-        'error',
-        {
-          anonymous: 'always',
-          named: 'never',
-          asyncArrow: 'always',
-        },
-      ],
       'no-unused-expressions': 'off',
       '@typescript-eslint/no-unused-expressions': [
         'error',
@@ -49,48 +39,6 @@ export default [
           allowTaggedTemplates: true,
         },
       ],
-      'comma-dangle': ['error', 'always-multiline'],
-      'arrow-parens': ['error', 'always'],
-      'object-curly-spacing': ['error', 'always'],
-      'array-bracket-spacing': ['error', 'never'],
-    },
-  },
-  {
-    files: ['src/js/**/*.js'],
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module',
-      globals: {
-        ...globals.browser,
-        ...globals.es2021,
-      },
-    },
-    rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
-      semi: ['error', 'always'],
-      quotes: ['error', 'single', { avoidEscape: true }],
-      indent: ['error', 2, { SwitchCase: 1 }],
-      'space-before-function-paren': [
-        'error',
-        {
-          anonymous: 'always',
-          named: 'never',
-          asyncArrow: 'always',
-        },
-      ],
-      'no-unused-expressions': [
-        'error',
-        {
-          allowShortCircuit: true,
-          allowTernary: true,
-          allowTaggedTemplates: true,
-        },
-      ],
-      'comma-dangle': ['error', 'always-multiline'],
-      'arrow-parens': ['error', 'always'],
-      'object-curly-spacing': ['error', 'always'],
-      'array-bracket-spacing': ['error', 'never'],
     },
   },
   {
@@ -108,23 +56,7 @@ export default [
     rules: {
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-console': 'off',
-      semi: ['error', 'always'],
-      quotes: ['error', 'single', { avoidEscape: true }],
-      indent: ['error', 2, { SwitchCase: 1 }],
-      'space-before-function-paren': [
-        'error',
-        {
-          anonymous: 'always',
-          named: 'never',
-          asyncArrow: 'always',
-        },
-      ],
       'no-unused-expressions': 'off',
-      'comma-dangle': ['error', 'always-multiline'],
-      'arrow-parens': ['error', 'always'],
-      'object-curly-spacing': ['error', 'always'],
-      'array-bracket-spacing': ['error', 'never'],
-      'max-len': 'off',
       'no-magic-numbers': 'off',
     },
   },
@@ -143,19 +75,14 @@ export default [
     rules: {
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-console': 'off',
-      semi: ['error', 'always'],
-      quotes: ['error', 'single', { avoidEscape: true }],
-      indent: ['error', 2, { SwitchCase: 1 }],
-      'comma-dangle': ['error', 'always-multiline'],
-      'arrow-parens': ['error', 'always'],
-      'object-curly-spacing': ['error', 'always'],
-      'array-bracket-spacing': ['error', 'never'],
     },
   },
   {
-    files: ['*.config.js', 'rollup.config.js'],
+    // Tooling that runs in Node: configs and release scripts
+    files: ['*.config.js', '*.config.mjs', 'scripts/**/*.js'],
     languageOptions: {
-      ecmaVersion: 2022,
+      // rollup.config.mjs imports package.json with an import attribute
+      ecmaVersion: 'latest',
       sourceType: 'module',
       globals: {
         ...globals.node,
@@ -163,10 +90,17 @@ export default [
     },
     rules: {
       'no-console': 'off',
-      semi: ['error', 'always'],
-      quotes: ['error', 'single', { avoidEscape: true }],
-      indent: ['error', 2],
-      'comma-dangle': ['error', 'always-multiline'],
+    },
+  },
+  // Prettier owns formatting: turn off every rule that could conflict with it.
+  // Kept after all rule blocks so that none of them can re-enable one.
+  eslintConfigPrettier,
+  {
+    // Braces around every control statement body. eslint-config-prettier
+    // turns curly off, but its "all" option is compatible with Prettier, so it
+    // is enabled again here, after that config.
+    rules: {
+      curly: ['error', 'all'],
     },
   },
   {
