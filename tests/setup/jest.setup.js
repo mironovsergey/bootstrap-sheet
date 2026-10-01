@@ -1,31 +1,5 @@
 import '@testing-library/jest-dom';
 
-// Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: jest.fn().mockImplementation((query) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
-});
-
-// Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
-  disconnect() {}
-  observe() {}
-  takeRecords() {
-    return [];
-  }
-  unobserve() {}
-};
-
 // Mock PointerEvent
 global.PointerEvent = class PointerEvent extends MouseEvent {
   constructor(type, params = {}) {
@@ -103,16 +77,6 @@ window.getComputedStyle = function (element) {
     },
   };
 };
-
-// Helper to trigger transitionend event
-global.triggerTransitionEnd = (element) => {
-  const event = new Event('transitionend', { bubbles: true });
-  Object.defineProperty(event, 'target', { value: element, enumerable: true });
-  element.dispatchEvent(event);
-};
-
-// Helper to wait for next tick
-global.waitForNextTick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 // Mock offsetParent to always return true parent for visibility checks
 Object.defineProperty(HTMLElement.prototype, 'offsetParent', {

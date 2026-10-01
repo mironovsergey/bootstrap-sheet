@@ -25,11 +25,6 @@ export default {
       // Setup files
       setupFilesAfterEnv: ['<rootDir>/tests/setup/jest.setup.js'],
 
-      // Module paths
-      moduleNameMapper: {
-        '^@/(.*)$': '<rootDir>/src/js/$1',
-      },
-
       // Test match patterns
       testMatch: ['<rootDir>/tests/unit/**/*.test.{js,ts}'],
     },
