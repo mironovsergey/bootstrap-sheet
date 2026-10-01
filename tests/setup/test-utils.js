@@ -284,7 +284,10 @@ export function simulateSwipe(element, options = {}) {
  */
 export function getTranslateY(element) {
   const transform = element.style.transform;
-  if (!transform || transform === 'none') return 0;
+
+  if (!transform || transform === 'none') {
+    return 0;
+  }
 
   const match = transform.match(/translateY\((-?\d+(?:\.\d+)?)(px)?\)/);
   return match ? parseFloat(match[1]) : 0;
