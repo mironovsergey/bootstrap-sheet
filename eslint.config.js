@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 export default [
   js.configs.recommended,
   // Scoped to .ts so the shared TS configs never affect .js files
-  ...tseslint.configs.recommended.map((config) => ({
+  ...tseslint.configs.recommendedTypeChecked.map((config) => ({
     ...config,
     files: ['src/js/**/*.ts'],
   })),
@@ -18,6 +18,12 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.es2021,
+      },
+      // Type-aware rules read types through the TypeScript project service,
+      // which picks up tsconfig.json for every source file
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {
