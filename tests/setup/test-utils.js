@@ -137,30 +137,6 @@ export function createFocusableElements(container, count = 3) {
 }
 
 /**
- * Wait for CSS transitions to complete
- * @param {HTMLElement} element - Element to wait for
- * @param {number} duration - Expected duration in ms
- * @returns {Promise<void>}
- */
-export async function waitForTransition(element, duration = 300) {
-  return new Promise((resolve) => {
-    const handler = (event) => {
-      if (event.target === element) {
-        element.removeEventListener('transitionend', handler);
-        resolve();
-      }
-    };
-    element.addEventListener('transitionend', handler);
-
-    // Fallback timeout
-    setTimeout(() => {
-      element.removeEventListener('transitionend', handler);
-      resolve();
-    }, duration + 100);
-  });
-}
-
-/**
  * Simulate pointer events for gesture testing
  * @param {HTMLElement} element - Target element
  * @param {Object} options - Event options
@@ -247,37 +223,6 @@ export function startDrag(element, options = {}) {
 }
 
 /**
- * Simulate a complete swipe gesture.
- *
- * The pointer additionally travels the slop distance before the drag begins,
- * so the sheet is displaced by exactly `endY - startY`.
- *
- * @param {HTMLElement} element - Element to start the gesture on
- * @param {Object} options - Gesture options
- */
-export function simulateSwipe(element, options = {}) {
-  const { startY = 0, endY = 100, duration = 300, steps = 10 } = options;
-
-  const deltaY = endY - startY;
-  const direction = deltaY < 0 ? 'up' : 'down';
-
-  // Start drag past the slop threshold
-  const originY = startDrag(element, { startY, direction });
-
-  // Move in steps
-  const stepSize = deltaY / steps;
-
-  for (let i = 1; i <= steps; i++) {
-    const currentY = originY + stepSize * i;
-    simulatePointerEvent(document, 'pointermove', { clientY: currentY });
-    jest.advanceTimersByTime(duration / steps);
-  }
-
-  // End drag
-  simulatePointerEvent(document, 'pointerup', { clientY: originY + deltaY });
-}
-
-/**
  * Get computed transform translateY value
  * @param {HTMLElement} element - Element to check
  * @returns {number} TranslateY value in pixels
@@ -291,58 +236,6 @@ export function getTranslateY(element) {
 
   const match = transform.match(/translateY\((-?\d+(?:\.\d+)?)(px)?\)/);
   return match ? parseFloat(match[1]) : 0;
-}
-
-/**
- * Create an event spy
- * @param {HTMLElement} element - Element to spy on
- * @param {string} eventName - Event name
- * @returns {Object} Spy object with calls array
- */
-export function spyOnEvent(element, eventName) {
-  const calls = [];
-  const handler = (event) => {
-    calls.push({
-      event,
-      detail: event.detail,
-      defaultPrevented: event.defaultPrevented,
-    });
-  };
-
-  element.addEventListener(eventName, handler);
-
-  return {
-    calls,
-    remove: () => element.removeEventListener(eventName, handler),
-    reset: () => {
-      calls.length = 0;
-    },
-  };
-}
-
-/**
- * Check if element has scroll
- * @param {HTMLElement} element - Element to check
- * @returns {boolean}
- */
-export function hasScroll(element) {
-  return element.scrollHeight > element.clientHeight;
-}
-
-/**
- * Mock scrollbar width
- * @param {number} width - Scrollbar width to mock
- */
-export function mockScrollbarWidth(width = 15) {
-  Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
-    configurable: true,
-    value: 100,
-  });
-
-  Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
-    configurable: true,
-    value: 100 - width,
-  });
 }
 
 /**
