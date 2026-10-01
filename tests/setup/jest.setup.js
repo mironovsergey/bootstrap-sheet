@@ -95,7 +95,10 @@ window.getComputedStyle = function (element) {
     ...styles,
     transform,
     getPropertyValue: (prop) => {
-      if (prop === 'transform') return transform;
+      if (prop === 'transform') {
+        return transform;
+      }
+
       return styles.getPropertyValue(prop);
     },
   };
