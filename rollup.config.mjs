@@ -5,72 +5,58 @@ import pkg from './package.json' with { type: 'json' };
 
 const banner = `/*!
  * Bootstrap Sheet v${pkg.version} (${pkg.homepage})
- * Copyright 2025 ${pkg.author}
+ * Copyright 2025-${new Date().getFullYear()} ${pkg.author}
  * Licensed under ${pkg.license}
  */`;
 
-export default [
-  // UMD build
-  {
-    input: 'src/js/bootstrap-sheet.ts',
-    output: {
+/**
+ * Source map settings shared by every output. The maps point at the
+ * TypeScript sources the package ships under src/, so the sources are not
+ * embedded a second time.
+ */
+const sourcemapOutput = {
+  sourcemap: true,
+  sourcemapExcludeSources: true,
+};
+
+/**
+ * Output settings shared by the UMD bundles, which serve script tags and
+ * CommonJS consumers
+ */
+const umdOutput = {
+  ...sourcemapOutput,
+  format: 'umd',
+  name: 'BootstrapSheet',
+  banner,
+};
+
+// One build, three outputs: the sources are resolved and transpiled once, and
+// only the minified bundle runs through terser
+export default {
+  input: 'src/js/bootstrap-sheet.ts',
+  plugins: [
+    nodeResolve({ extensions: ['.js', '.ts'] }),
+    babel({
+      babelHelpers: 'bundled',
+      presets: ['@babel/preset-env', '@babel/preset-typescript'],
+      extensions: ['.js', '.ts'],
+    }),
+  ],
+  output: [
+    {
+      ...umdOutput,
       file: 'dist/js/bootstrap-sheet.js',
-      format: 'umd',
-      name: 'BootstrapSheet',
-      banner,
-      globals: {
-        bootstrap: 'bootstrap',
-      },
     },
-    external: ['bootstrap'],
-    plugins: [
-      nodeResolve({ extensions: ['.js', '.ts'] }),
-      babel({
-        babelHelpers: 'bundled',
-        presets: ['@babel/preset-env', '@babel/preset-typescript'],
-        extensions: ['.js', '.ts'],
-      }),
-    ],
-  },
-  // UMD minified
-  {
-    input: 'src/js/bootstrap-sheet.ts',
-    output: {
+    {
+      ...umdOutput,
       file: 'dist/js/bootstrap-sheet.min.js',
-      format: 'umd',
-      name: 'BootstrapSheet',
-      banner,
-      globals: {
-        bootstrap: 'bootstrap',
-      },
+      plugins: [terser()],
     },
-    external: ['bootstrap'],
-    plugins: [
-      nodeResolve({ extensions: ['.js', '.ts'] }),
-      babel({
-        babelHelpers: 'bundled',
-        presets: ['@babel/preset-env', '@babel/preset-typescript'],
-        extensions: ['.js', '.ts'],
-      }),
-      terser(),
-    ],
-  },
-  // ESM build
-  {
-    input: 'src/js/bootstrap-sheet.ts',
-    output: {
+    {
+      ...sourcemapOutput,
       file: 'dist/js/bootstrap-sheet.esm.js',
       format: 'es',
       banner,
     },
-    external: ['bootstrap'],
-    plugins: [
-      nodeResolve({ extensions: ['.js', '.ts'] }),
-      babel({
-        babelHelpers: 'bundled',
-        presets: ['@babel/preset-env', '@babel/preset-typescript'],
-        extensions: ['.js', '.ts'],
-      }),
-    ],
-  },
-];
+  ],
+};
