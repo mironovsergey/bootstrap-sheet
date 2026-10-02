@@ -1,0 +1,4 @@
+# Owners are requested for review on every pull request that touches the
+# files they own, including those opened by Dependabot. The order of rules
+# matters: the last matching pattern wins.
+* @mironovsergey
