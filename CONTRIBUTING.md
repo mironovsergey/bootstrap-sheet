@@ -74,6 +74,7 @@ bootstrap-sheet/
 - `npm run dev` - Start development mode with file watching
 - `npm run build` - Build production files (JS bundles, CSS, type declarations)
 - `npm test` - Run test suite
+- `npm run test:artifacts` - Smoke-test the built package in `dist/` (run `npm run build` first)
 - `npm run check:types` - Type-check the sources with the TypeScript compiler
 - `npm run lint` - Run ESLint
 - `npm run format` - Format code with Prettier
@@ -164,6 +165,10 @@ npm run test:unit:watch
 
 # Run tests with coverage
 npm run test:unit:coverage
+
+# Smoke-test the built package: ES module, UMD bundle, tree-shaking
+npm run build
+npm run test:artifacts
 ```
 
 #### Writing Tests
