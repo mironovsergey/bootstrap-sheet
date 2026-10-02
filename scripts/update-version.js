@@ -10,6 +10,31 @@ const packagePath = path.join(rootDir, 'package.json');
 const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 const version = pkg.version;
 
+const isPrerelease = version.includes('-');
+const [major, minor, patch] = version.split('-')[0].split('.').map(Number);
+
+/**
+ * Supported versions table of SECURITY.md for the current release line.
+ *
+ * Only the latest minor line receives security patches. The columns are padded
+ * the way Prettier lays out Markdown tables, so the file stays formatted.
+ * @returns {string} The table, ending with a newline
+ */
+const supportedVersionsTable = () => {
+  const rows = [
+    ['Version', 'Supported'],
+    [`${major}.${minor}.x`, ':white_check_mark:'],
+    [`< ${major}.${minor}`, ':x:'],
+  ];
+  const widths = rows[0].map((_, column) => Math.max(...rows.map((row) => row[column].length)));
+  const formatRow = (cells) =>
+    `| ${cells.map((cell, column) => cell.padEnd(widths[column])).join(' | ')} |`;
+  const separator = formatRow(widths.map((width) => '-'.repeat(width)));
+  const [header, ...body] = rows.map(formatRow);
+
+  return [header, separator, ...body].join('\n') + '\n';
+};
+
 const filesToUpdate = [
   {
     path: 'README.md',
@@ -33,6 +58,19 @@ const filesToUpdate = [
     ],
     replacements: [`<title>Bootstrap Sheet v${version}</title>`, `Bootstrap Sheet v${version}`],
   },
+  // A prerelease does not change which release line is supported
+  ...(isPrerelease
+    ? []
+    : [
+        {
+          path: 'SECURITY.md',
+          patterns: [/^\| Version .*\n(?:\|.*\n)+/m, /patch versions \(e\.g\., \d+\.\d+\.\d+\)/g],
+          replacements: [
+            supportedVersionsTable(),
+            `patch versions (e.g., ${major}.${minor}.${patch + 1})`,
+          ],
+        },
+      ]),
 ];
 
 filesToUpdate.forEach((file) => {
