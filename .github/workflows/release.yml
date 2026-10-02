@@ -5,13 +5,13 @@ on:
     tags:
       - 'v*.*.*'
 
+# Read-only by default; jobs that need more ask for it themselves
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 jobs:
   test:
-    name: Run Tests Before Release
+    name: Test and Build
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
 
       - name: Install dependencies
@@ -30,32 +30,45 @@ jobs:
       - name: Run linter
         run: npm run lint
 
+      - name: Check types
+        run: npm run check:types
+
+      - name: Check code formatting
+        run: npm run format:check
+
       - name: Run tests
         run: npm run test:unit:coverage
 
+      # The only build of the release: the jobs below ship this exact output
       - name: Build project
         run: npm run build
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
 
   release:
     name: Create GitHub Release
     needs: test
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
+      # Needed for CHANGELOG.md
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - name: Download build output
+        uses: actions/download-artifact@v8
         with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build project
-        run: npm run build
+          name: dist
+          path: dist
 
       - name: Extract version from tag
         id: version
@@ -99,27 +112,28 @@ jobs:
       id-token: write
 
     steps:
+      # Needed for the package manifest, README, LICENSE and sources
       - name: Checkout code
         uses: actions/checkout@v7
 
+      # Trusted publishing needs npm >= 11.5.1. Node 24, the active LTS line,
+      # ships a newer npm (11.19 with 24.21), so npm is used as bundled
+      # rather than upgraded to whatever version is latest at release time.
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 22
-          cache: 'npm'
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
 
-      # Node 22 ships npm 10; trusted publishing needs npm >= 11.5.1.
-      - name: Upgrade npm for trusted publishing
-        run: npm install -g npm@latest
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build project
-        run: npm run build
+      - name: Download build output
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
 
       # No token: npm detects the trusted publisher and authenticates via OIDC,
-      # and attaches a provenance attestation automatically.
+      # and attaches a provenance attestation automatically. The test job has
+      # already built and tested this commit, so lifecycle scripts are skipped:
+      # prepublishOnly would only build and test it again.
       - name: Publish to npm
-        run: npm publish
+        run: npm publish --ignore-scripts
