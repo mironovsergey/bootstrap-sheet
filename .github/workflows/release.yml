@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install dependencies
@@ -116,13 +116,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      # Trusted publishing needs npm >= 11.5.1. Node 24, the active LTS line,
-      # ships a newer npm (11.19 with 24.21), so npm is used as bundled
+      # Trusted publishing needs npm >= 11.5.1. The Node line in .nvmrc, 24 or
+      # later, ships a newer npm (11.19 with 26.10), so npm is used as bundled
       # rather than upgraded to whatever version is latest at release time.
+      # check-latest takes the newest release of that line, not an older one
+      # that happens to be cached on the runner.
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version-file: '.nvmrc'
+          check-latest: true
           registry-url: 'https://registry.npmjs.org'
 
       - name: Download build output
