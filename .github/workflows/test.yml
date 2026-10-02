@@ -13,7 +13,8 @@ jobs:
 
     strategy:
       matrix:
-        node: [22]
+        # Maintenance LTS, active LTS, and the line that becomes LTS next
+        node: [22, 24, 26]
         os: [ubuntu-latest, windows-latest, macos-latest]
       fail-fast: false
 
@@ -42,6 +43,8 @@ jobs:
       - name: Run tests
         run: npm run test:unit:coverage
 
+      # Coverage does not depend on the Node version or the OS, so it is
+      # uploaded once, from the oldest line in the matrix
       - name: Upload coverage to Codecov
         if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v7
@@ -53,21 +56,17 @@ jobs:
           fail_ci_if_error: false
 
   build:
-    name: Build on Node ${{ matrix.node }}
+    name: Build
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node: [22]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Setup Node.js ${{ matrix.node }}
+      - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: ${{ matrix.node }}
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install dependencies
@@ -86,7 +85,6 @@ jobs:
           test -f dist/types/bootstrap-sheet.d.ts
 
       - name: Upload build artifacts
-        if: matrix.node == 22
         uses: actions/upload-artifact@v7
         with:
           name: build-artifacts
