@@ -92,8 +92,10 @@ jobs:
             dist/js/bootstrap-sheet.js
             dist/js/bootstrap-sheet.min.js
             dist/js/bootstrap-sheet.esm.js
+            dist/js/*.map
             dist/css/bootstrap-sheet.css
             dist/css/bootstrap-sheet.min.css
+            dist/css/*.map
             dist/types/*.d.ts
           draft: false
           prerelease: false
