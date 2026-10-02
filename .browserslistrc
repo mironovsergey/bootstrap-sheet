@@ -1,0 +1,18 @@
+# Browsers the JavaScript bundles are compiled for: @babel/preset-env reads
+# this file when Rollup builds dist/js. Jest is unaffected, since
+# babel.config.js targets the running Node version there.
+#
+# Safari and iOS 16 are the oldest releases with everything the component
+# relies on: the inert attribute (Safari 15.5) and the composite option of
+# Web Animations, used for the shake effect (Safari 16). The other browsers
+# update themselves, so their last two versions are enough.
+
+last 2 Chrome versions
+last 2 Edge versions
+last 2 Firefox versions
+Firefox ESR
+last 2 ChromeAndroid versions
+last 2 FirefoxAndroid versions
+last 2 Samsung versions
+Safari >= 16
+iOS >= 16
