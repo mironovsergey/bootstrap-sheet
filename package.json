@@ -2,9 +2,10 @@
   "name": "bootstrap-sheet",
   "version": "0.5.1",
   "description": "A touch-friendly bottom sheet component for Bootstrap 5",
-  "main": "dist/js/bootstrap-sheet.js",
+  "main": "dist/js/bootstrap-sheet.cjs",
   "module": "dist/js/bootstrap-sheet.esm.js",
   "unpkg": "dist/js/bootstrap-sheet.min.js",
+  "jsdelivr": "dist/js/bootstrap-sheet.min.js",
   "style": "dist/css/bootstrap-sheet.css",
   "sass": "src/scss/bootstrap-sheet.scss",
   "types": "dist/types/bootstrap-sheet.d.ts",
@@ -19,16 +20,18 @@
     ".": {
       "types": "./dist/types/bootstrap-sheet.d.ts",
       "import": "./dist/js/bootstrap-sheet.esm.js",
-      "require": "./dist/js/bootstrap-sheet.js",
-      "default": "./dist/js/bootstrap-sheet.js"
+      "require": "./dist/js/bootstrap-sheet.cjs",
+      "default": "./dist/js/bootstrap-sheet.esm.js"
     },
+    "./package.json": "./package.json",
     "./dist/css/*": "./dist/css/*",
     "./src/scss/*": "./src/scss/*"
   },
   "sideEffects": [
     "*.css",
     "*.scss",
-    "./dist/js/*.js"
+    "./dist/js/*.js",
+    "./dist/js/*.cjs"
   ],
   "scripts": {
     "dev": "concurrently \"npm:dev:*\"",
@@ -50,6 +53,7 @@
     "test:artifacts": "jest --config jest.artifacts.config.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "lint:package": "publint",
     "check:types": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{js,ts,scss}\" \"tests/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.{js,ts,scss}\" \"tests/**/*.js\"",
@@ -147,6 +151,7 @@
     "jsdom": "^26.1.0",
     "lint-staged": "^16.2.4",
     "prettier": "^3.6.2",
+    "publint": "^0.3.25",
     "rimraf": "^6.0.1",
     "rollup": "^4.52.0",
     "sass": "^1.93.0",

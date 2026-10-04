@@ -80,12 +80,16 @@ jobs:
           test -f dist/js/bootstrap-sheet.js
           test -f dist/js/bootstrap-sheet.min.js
           test -f dist/js/bootstrap-sheet.esm.js
+          test -f dist/js/bootstrap-sheet.cjs
           test -f dist/css/bootstrap-sheet.css
           test -f dist/css/bootstrap-sheet.min.css
           test -f dist/types/bootstrap-sheet.d.ts
 
       - name: Run smoke tests of the built package
         run: npm run test:artifacts
+
+      - name: Lint the package manifest and entry points
+        run: npm run lint:package
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
