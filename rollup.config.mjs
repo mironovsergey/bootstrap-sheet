@@ -30,7 +30,7 @@ const umdOutput = {
   banner,
 };
 
-// One build, three outputs: the sources are resolved and transpiled once, and
+// One build, four outputs: the sources are resolved and transpiled once, and
 // only the minified bundle runs through terser
 export default {
   input: 'src/js/bootstrap-sheet.ts',
@@ -56,6 +56,15 @@ export default {
       ...sourcemapOutput,
       file: 'dist/js/bootstrap-sheet.esm.js',
       format: 'es',
+      banner,
+    },
+    // CommonJS for require(). The class is exported as `default`, the same
+    // shape the ES module has, so one declaration file can describe both
+    {
+      ...sourcemapOutput,
+      file: 'dist/js/bootstrap-sheet.cjs',
+      format: 'cjs',
+      exports: 'named',
       banner,
     },
   ],

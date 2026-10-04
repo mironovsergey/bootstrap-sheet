@@ -46,6 +46,9 @@ jobs:
       - name: Run smoke tests of the built package
         run: npm run test:artifacts
 
+      - name: Lint the package manifest and entry points
+        run: npm run lint:package
+
       - name: Upload build output
         uses: actions/upload-artifact@v7
         with:
@@ -95,6 +98,7 @@ jobs:
             dist/js/bootstrap-sheet.js
             dist/js/bootstrap-sheet.min.js
             dist/js/bootstrap-sheet.esm.js
+            dist/js/bootstrap-sheet.cjs
             dist/js/*.map
             dist/css/bootstrap-sheet.css
             dist/css/bootstrap-sheet.min.css

@@ -1,3 +1,4 @@
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -15,6 +16,21 @@ export const assertBuilt = () => {
     throw new Error('dist/ is missing: run `npm run build` before `npm run test:artifacts`.');
   }
 };
+
+/**
+ * Run code in a separate Node process from a directory
+ * @param {string} cwd - Directory to run in
+ * @param {'module' | 'commonjs'} inputType - Module system the code is written for
+ * @param {string} source - Code that prints one JSON value
+ * @returns {unknown} The printed value
+ */
+export const runNode = (cwd, inputType, source) =>
+  JSON.parse(
+    execFileSync(process.execPath, [`--input-type=${inputType}`, '--eval', source], {
+      cwd,
+      encoding: 'utf8',
+    }),
+  );
 
 /**
  * Create a project that depends on the package the way an installed

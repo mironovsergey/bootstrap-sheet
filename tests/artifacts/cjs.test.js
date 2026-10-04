@@ -1,6 +1,6 @@
 import { assertBuilt, createConsumer, runNode } from './consumer';
 
-describe('Package - ES module', () => {
+describe('Package - CommonJS', () => {
   let consumer;
 
   beforeAll(() => {
@@ -12,23 +12,23 @@ describe('Package - ES module', () => {
     consumer.cleanup();
   });
 
-  test('should resolve to the ES module build', () => {
+  test('should resolve to the CommonJS build', () => {
     const resolved = runNode(
       consumer.dir,
-      'module',
-      "console.log(JSON.stringify(import.meta.resolve('bootstrap-sheet')));",
+      'commonjs',
+      "console.log(JSON.stringify(require.resolve('bootstrap-sheet')));",
     );
 
-    expect(resolved).toMatch(/\/dist\/js\/bootstrap-sheet\.esm\.js$/);
+    expect(resolved).toMatch(/[\\/]dist[\\/]js[\\/]bootstrap-sheet\.cjs$/);
   });
 
-  // Server-side renderers import the package in Node, where there is no DOM
-  test('should import by package name where there is no DOM', () => {
+  // The class is the `default` export, as in the ES module
+  test('should require by package name where there is no DOM', () => {
     const result = runNode(
       consumer.dir,
-      'module',
+      'commonjs',
       `
-      const { default: BootstrapSheet } = await import('bootstrap-sheet');
+      const { default: BootstrapSheet } = require('bootstrap-sheet');
 
       console.log(JSON.stringify({
         hasDocument: typeof document !== 'undefined',
