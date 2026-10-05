@@ -1,6 +1,6 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { EVENT, CLASS_NAME } from '../../src/js/constants';
-import DetentModel, { parseDetents } from '../../src/js/detents';
+import DetentModel from '../../src/js/detents';
 import {
   createSheet,
   getTranslateY,
@@ -49,25 +49,25 @@ async function showSheet(options = {}, sheetOptions = {}) {
 }
 
 describe('BootstrapSheet - Detents', () => {
-  describe('parseDetents', () => {
+  describe('DetentModel.parse', () => {
     test('should parse a comma-separated list', () => {
-      expect(parseDetents('0.4,1')).toEqual([0.4, 1]);
-      expect(parseDetents(' 0.25 , 0.5 , 1 ')).toEqual([0.25, 0.5, 1]);
+      expect(DetentModel.parse('0.4,1')).toEqual([0.4, 1]);
+      expect(DetentModel.parse(' 0.25 , 0.5 , 1 ')).toEqual([0.25, 0.5, 1]);
     });
 
     test('should parse a JSON array', () => {
-      expect(parseDetents('[0.4, 1]')).toEqual([0.4, 1]);
+      expect(DetentModel.parse('[0.4, 1]')).toEqual([0.4, 1]);
     });
 
     test('should pass non-strings through untouched', () => {
       const list = [0.4, 1];
 
-      expect(parseDetents(list)).toBe(list);
-      expect(parseDetents(null)).toBeNull();
+      expect(DetentModel.parse(list)).toBe(list);
+      expect(DetentModel.parse(null)).toBeNull();
     });
 
     test('should return malformed JSON unchanged so validation can reject it', () => {
-      expect(parseDetents('[0.4, 1')).toBe('[0.4, 1');
+      expect(DetentModel.parse('[0.4, 1')).toBe('[0.4, 1');
     });
   });
 

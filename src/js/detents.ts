@@ -13,42 +13,6 @@ export interface DetentTarget {
 }
 
 /**
- * Parse a raw `detents` value into something `validateConfigTypes` can check.
- *
- * Data attributes arrive as strings, since `parseAttributeValue` only resolves
- * booleans, numbers, `null` and plain strings. Both a JSON array and a bare
- * comma-separated list are accepted:
- *
- * ```html
- * <div class="sheet" data-bs-detents="0.4,1"></div>
- * <div class="sheet" data-bs-detents="[0.4, 1]"></div>
- * ```
- *
- * Values that are not strings are returned untouched, so a `detents` array
- * passed through JavaScript reaches validation as-is.
- *
- * @param value - Raw option value
- * @returns The value with strings expanded into arrays
- */
-export const parseDetents = (value: unknown): unknown => {
-  if (typeof value !== 'string') {
-    return value;
-  }
-
-  const trimmed = value.trim();
-
-  if (trimmed.startsWith('[')) {
-    try {
-      return JSON.parse(trimmed);
-    } catch {
-      return value;
-    }
-  }
-
-  return trimmed.split(',').map((part) => Number(part.trim()));
-};
-
-/**
  * The set of resting positions a sheet supports.
  *
  * A detent is the fraction of the sheet's height that is visible: `1` is fully
@@ -62,6 +26,42 @@ export const parseDetents = (value: unknown): unknown => {
 export default class DetentModel {
   /** Configured detents, ascending and deduplicated */
   #list: readonly number[];
+
+  /**
+   * Parse a raw `detents` value into something `validateConfigTypes` can check.
+   *
+   * Data attributes arrive as strings, since `parseAttributeValue` only
+   * resolves booleans, numbers, `null` and plain strings. Both a JSON array and
+   * a bare comma-separated list are accepted:
+   *
+   * ```html
+   * <div class="sheet" data-bs-detents="0.4,1"></div>
+   * <div class="sheet" data-bs-detents="[0.4, 1]"></div>
+   * ```
+   *
+   * Values that are not strings are returned untouched, so a `detents` array
+   * passed through JavaScript reaches validation as-is.
+   *
+   * @param value - Raw option value
+   * @returns The value with strings expanded into arrays
+   */
+  static parse(value: unknown): unknown {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const trimmed = value.trim();
+
+    if (trimmed.startsWith('[')) {
+      try {
+        return JSON.parse(trimmed);
+      } catch {
+        return value;
+      }
+    }
+
+    return trimmed.split(',').map((part) => Number(part.trim()));
+  }
 
   /**
    * @param detents - Fractions in (0, 1]; order and duplicates do not matter
