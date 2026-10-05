@@ -1,4 +1,5 @@
 import SpringAnimator from '../../src/js/spring-animator';
+import VelocityTracker from '../../src/js/velocity-tracker';
 
 describe('Physics - SpringAnimator.physicalParameters', () => {
   test('should return stiffness, damping, and mass', () => {
@@ -281,5 +282,144 @@ describe('Physics - SpringAnimator.isSettled', () => {
     expect(SpringAnimator.isSettled({ position: 1.5, velocity: 1.5 }, 0, 2, 2)).toBe(true);
     expect(SpringAnimator.isSettled({ position: 2, velocity: 0 }, 0, 2, 2)).toBe(false);
     expect(SpringAnimator.isSettled({ position: 0, velocity: 2 }, 0, 2, 2)).toBe(false);
+  });
+});
+
+describe('Physics - VelocityTracker', () => {
+  describe('getVelocity - basic behavior', () => {
+    test('should return 0 with no samples', () => {
+      const tracker = new VelocityTracker();
+
+      expect(tracker.getVelocity(100)).toBe(0);
+    });
+
+    test('should return 0 with only one sample', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(0, 0);
+
+      expect(tracker.getVelocity(50)).toBe(0);
+    });
+
+    test('should calculate velocity from two samples', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(0, 0);
+      tracker.addSample(50, 100);
+
+      // 100px over 50ms = 2 px/ms
+      expect(tracker.getVelocity(50)).toBeCloseTo(2, 5);
+    });
+
+    test('should return negative velocity for upward movement', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(0, 100);
+      tracker.addSample(50, 0);
+
+      // -100px over 50ms = -2 px/ms
+      expect(tracker.getVelocity(100)).toBeCloseTo(-2, 5);
+    });
+
+    test('should return 0 for identical timestamps', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(100, 0);
+      tracker.addSample(100, 50);
+
+      expect(tracker.getVelocity(150)).toBe(0);
+    });
+
+    test('should use oldest and newest sample within window', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(0, 0);
+      tracker.addSample(25, 50);
+      tracker.addSample(50, 100);
+      tracker.addSample(75, 150);
+
+      // oldest in window: t=0, p=0; newest: t=75, p=150
+      // velocity = 150/75 = 2 px/ms
+      expect(tracker.getVelocity(100)).toBeCloseTo(2, 5);
+    });
+  });
+
+  describe('getVelocity - window behavior', () => {
+    test('should return 0 when all samples are outside the window', () => {
+      const tracker = new VelocityTracker(100);
+      tracker.addSample(0, 0);
+      tracker.addSample(50, 100);
+
+      // At t=200, window is [100, 200] - both samples (t=0, t=50) are outside
+      expect(tracker.getVelocity(200)).toBe(0);
+    });
+
+    test('should return 0 after a pause (no recent samples)', () => {
+      const tracker = new VelocityTracker(100);
+      tracker.addSample(0, 0);
+      tracker.addSample(20, 50);
+
+      // User pauses, releases 200ms later
+      expect(tracker.getVelocity(220)).toBe(0);
+    });
+
+    test('should respect custom window size', () => {
+      const tracker = new VelocityTracker(200);
+      tracker.addSample(0, 0);
+      tracker.addSample(150, 300);
+
+      // Both in window [0-200] → velocity = 300/150 = 2 px/ms
+      expect(tracker.getVelocity(200)).toBeCloseTo(2, 5);
+    });
+
+    test('should exclude samples outside window even if others are inside', () => {
+      const tracker = new VelocityTracker(100);
+      tracker.addSample(0, 0); // outside window at t=150 (cutoff=50)
+      tracker.addSample(60, 60);
+      tracker.addSample(120, 120);
+
+      // At t=150, cutoff=50: samples at t=60 and t=120 are in window
+      // velocity = (120-60)/(120-60) = 1 px/ms
+      expect(tracker.getVelocity(150)).toBeCloseTo(1, 5);
+    });
+  });
+
+  describe('reset', () => {
+    test('should clear all samples', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(0, 0);
+      tracker.addSample(50, 100);
+
+      tracker.reset();
+
+      expect(tracker.getVelocity(100)).toBe(0);
+    });
+
+    test('should allow new samples after reset', () => {
+      const tracker = new VelocityTracker();
+      tracker.addSample(0, 0);
+      tracker.addSample(50, 100);
+      tracker.reset();
+      tracker.addSample(0, 0);
+      tracker.addSample(50, 200);
+
+      expect(tracker.getVelocity(50)).toBeCloseTo(4, 5);
+    });
+  });
+
+  describe('addSample - pruning', () => {
+    test('should prune samples older than 2x window to prevent memory growth', () => {
+      const tracker = new VelocityTracker(100);
+      tracker.addSample(0, 0); // will be pruned when t=300 is added
+      tracker.addSample(50, 50); // will be pruned when t=300 is added
+      tracker.addSample(300, 300); // cutoff = 300 - 200 = 100; t=0 and t=50 are pruned
+
+      // Only {t=300} remains; window at t=350 is [250-350], t=300 is inside but alone
+      expect(tracker.getVelocity(350)).toBe(0);
+    });
+
+    test('should keep samples within 2x window after pruning', () => {
+      const tracker = new VelocityTracker(100);
+      tracker.addSample(150, 150);
+      tracker.addSample(200, 200); // cutoff = 200 - 200 = 0; t=150 > 0, kept
+
+      // Both in window at t=250 (cutoff=150): t=150 >= 150, t=200 >= 150
+      expect(tracker.getVelocity(250)).toBeCloseTo(1, 5);
+    });
   });
 });

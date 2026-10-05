@@ -1,6 +1,6 @@
 import BootstrapSheet from '../../src/js/bootstrap-sheet';
 import { CLASS_NAME, SCROLL_LOCK_TIMEOUT } from '../../src/js/constants';
-import { VelocityTracker } from '../../src/js/utils';
+import VelocityTracker from '../../src/js/velocity-tracker';
 import {
   createSheet,
   getTranslateY,
