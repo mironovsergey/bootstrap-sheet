@@ -8,7 +8,6 @@ import {
   extractDataAttributes,
   validateConfigTypes,
   getTranslateY,
-  springParameters,
 } from './utils';
 
 import Backdrop from './backdrop';
@@ -1001,7 +1000,10 @@ class BootstrapSheet {
    * @returns Physical spring constants
    */
   #resolveSpringParams() {
-    return springParameters(this.#config.springDampingRatio, this.#config.springResponse);
+    return SpringAnimator.physicalParameters(
+      this.#config.springDampingRatio,
+      this.#config.springResponse,
+    );
   }
 
   /**
