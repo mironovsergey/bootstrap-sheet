@@ -1079,16 +1079,15 @@ class BootstrapSheet {
 
     return event;
   }
-}
 
-// ==================== Global Initialization ====================
+  // ==================== Private Methods: Data API ====================
 
-// Server-side renderers import the module where there is no document
-if (typeof document !== 'undefined') {
   /**
-   * Global click handler to toggle sheets via data attributes
+   * Toggle the sheet a `data-bs-toggle="sheet"` trigger points at, creating
+   * its instance on first use
+   * @param event - Click event from anywhere in the document
    */
-  document.addEventListener('click', (event) => {
+  static #handleToggleClick(event: MouseEvent): void {
     if (!(event.target instanceof Element)) {
       return;
     }
@@ -1132,7 +1131,15 @@ if (typeof document !== 'undefined') {
     }
 
     sheetInstance.toggle();
-  });
+  }
+
+  // Runs once, when the class is defined. Server-side renderers import the
+  // module where there is no document.
+  static {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('click', (event) => BootstrapSheet.#handleToggleClick(event));
+    }
+  }
 }
 
 // ==================== Export ====================
