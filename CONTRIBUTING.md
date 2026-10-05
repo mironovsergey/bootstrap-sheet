@@ -75,6 +75,8 @@ bootstrap-sheet/
 - `npm run build` - Build production files (JS bundles, CSS, type declarations)
 - `npm test` - Run test suite
 - `npm run test:artifacts` - Smoke-test the built package in `dist/` (run `npm run build` first)
+- `npm run lint:package` - Check the package manifest, entry points and type declarations with publint and Are the Types Wrong (run `npm run build` first)
+- `npm run size` - Check the built bundles against the size budget in `.size-limit.js` (run `npm run build` first)
 - `npm run check:types` - Type-check the sources with the TypeScript compiler
 - `npm run lint` - Run ESLint
 - `npm run format` - Format code with Prettier
