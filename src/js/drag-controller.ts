@@ -5,7 +5,8 @@ import {
   RUBBER_BAND_COEFFICIENT,
   DECELERATION_RATE,
 } from './constants';
-import { rubberBand, projectDisplacement, VelocityTracker } from './utils';
+import { rubberBand, projectDisplacement } from './utils';
+import VelocityTracker from './velocity-tracker';
 
 /**
  * Who a gesture in progress belongs to.
