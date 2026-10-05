@@ -5,7 +5,6 @@ import {
   RUBBER_BAND_COEFFICIENT,
   DECELERATION_RATE,
 } from './constants';
-import { rubberBand, projectDisplacement } from './utils';
 import VelocityTracker from './velocity-tracker';
 
 /**
@@ -141,6 +140,53 @@ export default class DragController {
 
   /** Timestamp of the last scroll inside the sheet */
   #lastScrollTime = Number.NEGATIVE_INFINITY;
+
+  /**
+   * Apple's rubber band formula (reverse-engineered from UIScrollView).
+   *
+   * Attempt to move past a boundary results in diminishing returns:
+   * the displayed offset asymptotically approaches `dimension` but never reaches it.
+   * Initial slope equals `coefficient`, so the first few pixels of overscroll
+   * move at (coefficient × 100)% of finger speed.
+   *
+   * Formula: b = (1 - 1 / (x * c / d + 1)) * d
+   * Equivalent: b = (x * d * c) / (d + c * x)
+   *
+   * @param offset - How far past the boundary (must be >= 0)
+   * @param dimension - Reference dimension (sheet height)
+   * @param coefficient - Resistance coefficient (Apple uses 0.55)
+   * @returns Displayed offset (always >= 0, always < dimension)
+   * @see {@link https://gist.github.com/originell/6961057} Analysis of Apple's rubber band scrolling
+   */
+  static rubberBand(offset: number, dimension: number, coefficient: number): number {
+    if (offset === 0 || dimension === 0) {
+      return 0;
+    }
+
+    return (1.0 - 1.0 / ((offset * coefficient) / dimension + 1.0)) * dimension;
+  }
+
+  /**
+   * Project how far a decelerating object will travel before stopping.
+   *
+   * This is Apple's formula from WWDC 2018 "Designing Fluid Interfaces".
+   * Given a release velocity and a deceleration rate, it computes the total
+   * displacement the object would cover if allowed to coast to a stop.
+   *
+   * UIScrollView uses two deceleration rates:
+   * - 0.998 (UIScrollView.DecelerationRate.normal) - default, ~499px per 1000px/s
+   * - 0.99  (UIScrollView.DecelerationRate.fast)   - snappier, ~99px per 1000px/s
+   *
+   * The exact integral formula is `-v₀ / (1000 · ln(d))`, which differs from
+   * Apple's published approximation by less than 1%.
+   *
+   * @param velocity - Release velocity in px/s (positive = downward)
+   * @param decelerationRate - Deceleration rate (0–1, higher = more coasting)
+   * @returns Projected displacement in px (same sign as velocity)
+   */
+  static projectDisplacement(velocity: number, decelerationRate: number): number {
+    return ((velocity / 1000) * decelerationRate) / (1 - decelerationRate);
+  }
 
   constructor(config: DragControllerConfig) {
     this.#config = config;
@@ -510,7 +556,7 @@ export default class DragController {
     // Past top bound: apply rubber band resistance
     if (rawPosition < topBound) {
       const overscroll = topBound - rawPosition;
-      const resistedOverscroll = rubberBand(
+      const resistedOverscroll = DragController.rubberBand(
         overscroll,
         this.#config.getSheetHeight(),
         RUBBER_BAND_COEFFICIENT,
@@ -537,7 +583,7 @@ export default class DragController {
     const velocity = (velocityPxPerMs || 0) * 1000;
 
     const currentY = this.#resistantPosition(deltaY);
-    const displacement = projectDisplacement(velocity, DECELERATION_RATE);
+    const displacement = DragController.projectDisplacement(velocity, DECELERATION_RATE);
 
     this.#config.onRelease({ projectedY: currentY + displacement, velocity });
   }
