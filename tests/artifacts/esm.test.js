@@ -1,4 +1,4 @@
-import { assertBuilt, createConsumer, runNode } from './consumer';
+import { assertBuilt, createConsumer, JSDOM_ENTRY, runNode } from './consumer';
 
 describe('Package - ES module', () => {
   let consumer;
@@ -39,5 +39,35 @@ describe('Package - ES module', () => {
     );
 
     expect(result).toEqual({ hasDocument: false, type: 'function', name: 'sheet' });
+  });
+
+  // In a browser the module is evaluated with a DOM in place, and it also
+  // exposes the class as a global, as the UMD bundle does
+  test('should assign window.BootstrapSheet where there is a DOM', () => {
+    const result = runNode(
+      consumer.dir,
+      'module',
+      `
+      import { createRequire } from 'node:module';
+
+      const { JSDOM } = createRequire(import.meta.url)(${JSON.stringify(JSDOM_ENTRY)});
+      const { window } = new JSDOM();
+
+      globalThis.window = window;
+      globalThis.document = window.document;
+
+      // A static import would be evaluated before the globals are set
+      const { default: BootstrapSheet } = await import('bootstrap-sheet');
+
+      console.log(JSON.stringify({
+        hasDocument: typeof document !== 'undefined',
+        globalIsDefaultExport: window.BootstrapSheet === BootstrapSheet,
+      }));
+
+      window.close();
+      `,
+    );
+
+    expect(result).toEqual({ hasDocument: true, globalIsDefaultExport: true });
   });
 });

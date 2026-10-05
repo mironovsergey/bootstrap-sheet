@@ -9,6 +9,13 @@ import path from 'path';
 export const PACKAGE_ROOT = path.resolve(__dirname, '../..');
 
 /**
+ * Entry point of jsdom, resolved from this repository: code run in a separate
+ * Node process loads jsdom by this path, since a consumer project has none of
+ * its own
+ */
+export const JSDOM_ENTRY = require.resolve('jsdom');
+
+/**
  * Fail early, and say why, when the package has not been built
  */
 export const assertBuilt = () => {
