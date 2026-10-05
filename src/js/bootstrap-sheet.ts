@@ -20,6 +20,12 @@ import DetentModel from './detents';
 
 export type { BootstrapSheetOptions } from './constants';
 
+declare global {
+  interface Window {
+    BootstrapSheet: typeof BootstrapSheet;
+  }
+}
+
 /**
  * Bound event handlers kept for removal
  */
@@ -1134,10 +1140,14 @@ class BootstrapSheet {
   }
 
   // Runs once, when the class is defined. Server-side renderers import the
-  // module where there is no document.
+  // module where there is no document and no window.
   static {
     if (typeof document !== 'undefined') {
       document.addEventListener('click', (event) => BootstrapSheet.#handleToggleClick(event));
+    }
+
+    if (typeof window !== 'undefined') {
+      window.BootstrapSheet = BootstrapSheet;
     }
   }
 }
@@ -1145,13 +1155,3 @@ class BootstrapSheet {
 // ==================== Export ====================
 
 export default BootstrapSheet;
-
-declare global {
-  interface Window {
-    BootstrapSheet: typeof BootstrapSheet;
-  }
-}
-
-if (typeof window !== 'undefined') {
-  window.BootstrapSheet = BootstrapSheet;
-}
