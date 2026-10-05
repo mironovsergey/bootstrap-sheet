@@ -13,6 +13,7 @@
   "files": [
     "dist/",
     "src/",
+    "CHANGELOG.md",
     "LICENSE",
     "README.md"
   ],
@@ -165,8 +166,16 @@
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.65.0"
   },
-  "engines": {
-    "node": ">=22.20.0",
-    "npm": ">=11.6.2"
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=22",
+      "onFail": "warn"
+    },
+    "packageManager": {
+      "name": "npm",
+      "version": ">=10.9",
+      "onFail": "warn"
+    }
   }
 }
