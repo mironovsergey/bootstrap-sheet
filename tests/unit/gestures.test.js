@@ -506,7 +506,7 @@ describe('BootstrapSheet - Gestures', () => {
       const handle = sheet.querySelector('.sheet-handle');
 
       // Inject velocity 2 px/ms (2000 px/s) via spy so the projection formula is exercised.
-      // projectDisplacement(2000, 0.998) ≈ 998px → projectedY = 50 + 998 = 1048 > 200 → dismiss.
+      // DragController.projectDisplacement(2000, 0.998) ≈ 998px → projectedY = 50 + 998 = 1048 > 200 → dismiss.
       const getVelocitySpy = jest
         .spyOn(VelocityTracker.prototype, 'getVelocity')
         .mockReturnValue(2);

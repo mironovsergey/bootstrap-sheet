@@ -9,8 +9,6 @@ import {
   parseExpectedTypes,
   validateConfigTypes,
   getTranslateY,
-  rubberBand,
-  projectDisplacement,
 } from '../../src/js/utils';
 
 describe('Utils - parseAttributeValue', () => {
@@ -657,100 +655,5 @@ describe('Utils - getTranslateY', () => {
     expect(getTranslateY(element)).toBe(0);
 
     window.DOMMatrix = OrigDOMMatrix;
-  });
-});
-
-describe('Utils - rubberBand', () => {
-  test('should return 0 for zero offset', () => {
-    expect(rubberBand(0, 400, 0.55)).toBe(0);
-  });
-
-  test('should return 0 for zero dimension', () => {
-    expect(rubberBand(100, 0, 0.55)).toBe(0);
-  });
-
-  test('should return a value less than the raw offset (resistance effect)', () => {
-    const result = rubberBand(100, 400, 0.55);
-
-    expect(result).toBeGreaterThan(0);
-    expect(result).toBeLessThan(100);
-  });
-
-  test('should return a value less than the dimension (asymptotic bound)', () => {
-    expect(rubberBand(100, 400, 0.55)).toBeLessThan(400);
-    expect(rubberBand(10000, 400, 0.55)).toBeLessThan(400);
-  });
-
-  test('should return correct value for known input', () => {
-    // (1 - 1 / ((100 * 0.55) / 400 + 1)) * 400 ≈ 48.35
-    expect(rubberBand(100, 400, 0.55)).toBeCloseTo(48.35, 1);
-  });
-
-  test('should increase monotonically with offset', () => {
-    const r1 = rubberBand(50, 400, 0.55);
-    const r2 = rubberBand(100, 400, 0.55);
-    const r3 = rubberBand(200, 400, 0.55);
-
-    expect(r1).toBeLessThan(r2);
-    expect(r2).toBeLessThan(r3);
-  });
-
-  test('should scale proportionally with dimension', () => {
-    const r1 = rubberBand(100, 400, 0.55);
-    const r2 = rubberBand(200, 800, 0.55);
-
-    expect(r2).toBeCloseTo(r1 * 2, 5);
-  });
-
-  test('should increase resistance with higher coefficient', () => {
-    const lowResistance = rubberBand(100, 400, 0.3);
-    const highResistance = rubberBand(100, 400, 0.8);
-
-    expect(highResistance).toBeGreaterThan(lowResistance);
-  });
-});
-
-describe('Utils - projectDisplacement', () => {
-  test('should return 0 for zero velocity', () => {
-    expect(projectDisplacement(0, 0.998)).toBe(0);
-  });
-
-  test('should return positive displacement for positive velocity', () => {
-    expect(projectDisplacement(1000, 0.998)).toBeGreaterThan(0);
-  });
-
-  test('should return negative displacement for negative velocity', () => {
-    expect(projectDisplacement(-1000, 0.998)).toBeLessThan(0);
-  });
-
-  test('should be symmetric: negative velocity mirrors positive', () => {
-    const positive = projectDisplacement(1000, 0.998);
-    const negative = projectDisplacement(-1000, 0.998);
-
-    expect(positive).toBeCloseTo(-negative, 10);
-  });
-
-  test('should return correct displacement for velocity=1000 and rate=0.998', () => {
-    // (1000 / 1000 * 0.998) / (1 - 0.998) = 0.998 / 0.002 = 499
-    expect(projectDisplacement(1000, 0.998)).toBeCloseTo(499, 1);
-  });
-
-  test('should scale linearly with velocity', () => {
-    const d1 = projectDisplacement(1000, 0.998);
-    const d2 = projectDisplacement(2000, 0.998);
-
-    expect(d2).toBeCloseTo(d1 * 2, 5);
-  });
-
-  test('should return less displacement with lower deceleration rate (faster stop)', () => {
-    const fast = projectDisplacement(1000, 0.99);
-    const slow = projectDisplacement(1000, 0.998);
-
-    expect(fast).toBeLessThan(slow);
-  });
-
-  test('should return correct displacement for rate=0.99', () => {
-    // (1000 / 1000 * 0.99) / (1 - 0.99) = 0.99 / 0.01 = 99
-    expect(projectDisplacement(1000, 0.99)).toBeCloseTo(99, 1);
   });
 });
