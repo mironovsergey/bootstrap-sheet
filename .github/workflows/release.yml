@@ -49,6 +49,9 @@ jobs:
       - name: Lint the package manifest and entry points
         run: npm run lint:package
 
+      - name: Check bundle sizes
+        run: npm run size
+
       - name: Upload build output
         uses: actions/upload-artifact@v7
         with:
