@@ -16,7 +16,7 @@ import ScrollBarHelper from './scrollbar';
 import FocusTrap, { InertManager } from './focus-trap';
 import SpringAnimator from './spring-animator';
 import DragController from './drag-controller';
-import DetentModel, { parseDetents } from './detents';
+import DetentModel from './detents';
 
 export type { BootstrapSheetOptions } from './constants';
 
@@ -147,7 +147,7 @@ class BootstrapSheet {
     const mergedConfig: Record<string, unknown> = { ...Default, ...dataConfig, ...config };
 
     // Data attributes arrive as strings; normalize before the type check
-    mergedConfig.detents = parseDetents(mergedConfig.detents);
+    mergedConfig.detents = DetentModel.parse(mergedConfig.detents);
 
     validateConfigTypes<ResolvedSheetOptions>(NAME, mergedConfig, DefaultType);
 
@@ -1119,7 +1119,7 @@ if (typeof document !== 'undefined') {
 
       // Data attributes arrive as strings; normalize before the type check
       if ('detents' in triggerConfig) {
-        triggerConfig.detents = parseDetents(triggerConfig.detents);
+        triggerConfig.detents = DetentModel.parse(triggerConfig.detents);
       }
 
       // Runtime-validates the parsed attributes and narrows them to typed options
