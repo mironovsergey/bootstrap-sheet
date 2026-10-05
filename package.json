@@ -18,9 +18,14 @@
   ],
   "exports": {
     ".": {
-      "types": "./dist/types/bootstrap-sheet.d.ts",
-      "import": "./dist/js/bootstrap-sheet.esm.js",
-      "require": "./dist/js/bootstrap-sheet.cjs",
+      "import": {
+        "types": "./dist/types/bootstrap-sheet.d.ts",
+        "default": "./dist/js/bootstrap-sheet.esm.js"
+      },
+      "require": {
+        "types": "./dist/types/bootstrap-sheet.d.cts",
+        "default": "./dist/js/bootstrap-sheet.cjs"
+      },
       "default": "./dist/js/bootstrap-sheet.esm.js"
     },
     "./package.json": "./package.json",
@@ -40,7 +45,7 @@
     "dev:server": "ln -sfn ../dist docs/dist && http-server . -c-1 -o /docs/",
     "build": "npm run clean && npm run build:js && npm run build:css && npm run build:types",
     "build:js": "rollup -c",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "rollup -c rollup.types.config.mjs",
     "build:css": "npm run build:css:main && npm run build:css:min",
     "build:css:main": "sass src/scss/bootstrap-sheet.scss dist/css/bootstrap-sheet.css --style=expanded",
     "build:css:min": "sass src/scss/bootstrap-sheet.scss dist/css/bootstrap-sheet.min.css --style=compressed",
@@ -53,7 +58,7 @@
     "test:artifacts": "jest --config jest.artifacts.config.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "lint:package": "publint",
+    "lint:package": "publint --strict && attw --pack .",
     "check:types": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{js,ts,scss}\" \"tests/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.{js,ts,scss}\" \"tests/**/*.js\"",
@@ -128,6 +133,7 @@
     }
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@babel/core": "^7.28.4",
     "@babel/preset-env": "^7.28.3",
     "@babel/preset-typescript": "^7.29.7",
@@ -154,6 +160,7 @@
     "publint": "^0.3.25",
     "rimraf": "^6.0.1",
     "rollup": "^4.52.0",
+    "rollup-plugin-dts": "^6.5.1",
     "sass": "^1.93.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.65.0"

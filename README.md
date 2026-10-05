@@ -320,8 +320,9 @@ const sheet = BootstrapSheet.getOrCreateInstance('#mySheet', options);
 ```
 
 Option values are type-checked (for example, `backdrop` accepts only
-`boolean` or `'static'`), and declaration maps are included, so
-"Go to Definition" in your editor lands in the actual TypeScript source.
+`boolean` or `'static'`). The declarations are bundled into a single file
+that carries the source's JSDoc on every public member, and they resolve both
+for `import` and for `require()`.
 
 ---
 

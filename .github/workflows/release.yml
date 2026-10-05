@@ -104,6 +104,7 @@ jobs:
             dist/css/bootstrap-sheet.min.css
             dist/css/*.map
             dist/types/*.d.ts
+            dist/types/*.d.cts
           draft: false
           prerelease: false
         env:
