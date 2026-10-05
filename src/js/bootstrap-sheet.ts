@@ -20,8 +20,6 @@ import DetentModel from './detents';
 
 export type { BootstrapSheetOptions } from './constants';
 
-const INSTANCES = new WeakMap<HTMLElement, BootstrapSheet>();
-
 /**
  * Bound event handlers kept for removal
  */
@@ -38,6 +36,9 @@ interface SheetHandlers {
  */
 class BootstrapSheet {
   // ==================== Shared state ====================
+
+  /** Instances by the sheet element they control */
+  static #instances = new WeakMap<HTMLElement, BootstrapSheet>();
 
   /** Open sheets in the order they were shown; the last one is on top */
   static #openSheets: BootstrapSheet[] = [];
@@ -136,7 +137,7 @@ class BootstrapSheet {
     this.#currentDetent = this.#detents.smallest;
 
     // Prevent duplicate instances
-    const existing = INSTANCES.get(resolvedElement);
+    const existing = BootstrapSheet.#instances.get(resolvedElement);
 
     if (existing) {
       return existing;
@@ -160,7 +161,7 @@ class BootstrapSheet {
     this.#setupAccessibility();
     this.#warnDeprecatedDragHandle();
 
-    INSTANCES.set(resolvedElement, this);
+    BootstrapSheet.#instances.set(resolvedElement, this);
   }
 
   // ==================== Public API ====================
@@ -189,7 +190,9 @@ class BootstrapSheet {
   static getInstance(element: HTMLElement | string): BootstrapSheet | null {
     const resolvedElement = resolveElement(element);
 
-    return resolvedElement instanceof HTMLElement ? (INSTANCES.get(resolvedElement) ?? null) : null;
+    return resolvedElement instanceof HTMLElement
+      ? (BootstrapSheet.#instances.get(resolvedElement) ?? null)
+      : null;
   }
 
   /**
@@ -328,7 +331,7 @@ class BootstrapSheet {
     }
 
     this.#cleanup();
-    INSTANCES.delete(this.#element);
+    BootstrapSheet.#instances.delete(this.#element);
     this.#disposed = true;
   }
 
