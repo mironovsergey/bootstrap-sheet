@@ -69,9 +69,7 @@ test.describe('Lifecycle', () => {
       await sheetPage.page.mouse.wheel(0, 600);
 
       // A wheel step is applied asynchronously; give it a frame before reading
-      await sheetPage.page.evaluate(
-        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
-      );
+      await sheetPage.waitForFrame();
 
       expect(await sheetPage.pageScrollY()).toBe(0);
     });

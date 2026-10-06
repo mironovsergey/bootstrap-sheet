@@ -15,6 +15,9 @@ export default class SheetPage {
   /** The sheet element */
   readonly sheet: Locator;
 
+  /** Header of the sheet, a part with no controls of its own to drag from */
+  readonly header: Locator;
+
   /** The backdrop, present in the document only while the sheet is shown */
   readonly backdrop: Locator;
 
@@ -27,6 +30,7 @@ export default class SheetPage {
   constructor(page: Page) {
     this.page = page;
     this.sheet = page.locator('#sheet');
+    this.header = this.sheet.locator('.sheet-header');
     this.backdrop = page.locator('.sheet-backdrop');
     this.trigger = page.locator('#open');
   }
@@ -65,6 +69,17 @@ export default class SheetPage {
   }
 
   /**
+   * Wait until the browser has rendered a full frame. Updates batched into
+   * animation frames, such as the sheet following a drag, are applied by
+   * then, so a check that nothing moved is meaningful only after this.
+   */
+  async waitForFrame(): Promise<void> {
+    await this.page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
+  }
+
+  /**
    * Rendered vertical translation of the sheet
    * @returns Translation in pixels; 0 at the fully open position
    */
@@ -74,6 +89,14 @@ export default class SheetPage {
 
       return transform === 'none' ? 0 : new DOMMatrix(transform).m42;
     });
+  }
+
+  /**
+   * Rendered height of the sheet
+   * @returns Height in pixels
+   */
+  async height(): Promise<number> {
+    return this.sheet.evaluate((element) => element.getBoundingClientRect().height);
   }
 
   /**
