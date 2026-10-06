@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Basic sheet</title>
+    <link rel="stylesheet" href="/dist/css/bootstrap-sheet.css" />
+    <style>
+      /* Taller than any viewport, so that the page itself can scroll */
+      .page-content {
+        min-height: 300vh;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page-content">
+      <button type="button" id="open" data-bs-toggle="sheet" data-bs-target="#sheet">
+        Open sheet
+      </button>
+    </main>
+
+    <div class="sheet" id="sheet" aria-labelledby="sheet-title">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h2 class="sheet-title" id="sheet-title">Basic sheet</h2>
+        <button type="button" data-bs-dismiss="sheet">Close</button>
+      </div>
+      <div class="sheet-body">
+        <p>Sheet content.</p>
+      </div>
+    </div>
+
+    <script type="module" src="/dist/js/bootstrap-sheet.esm.js"></script>
+  </body>
+</html>

@@ -8,10 +8,10 @@ export default [
   // Scoped to .ts so the shared TS configs never affect .js files
   ...tseslint.configs.recommendedTypeChecked.map((config) => ({
     ...config,
-    files: ['src/js/**/*.ts'],
+    files: ['src/js/**/*.ts', 'tests/e2e/**/*.ts'],
   })),
   {
-    files: ['src/js/**/*.ts'],
+    files: ['src/js/**/*.ts', 'tests/e2e/**/*.ts'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -110,6 +110,16 @@ export default [
     },
   },
   {
-    ignores: ['dist/**', 'coverage/**', 'node_modules/**', '*.min.js', 'docs/**'],
+    // Playwright writes its reports and test output under tests/e2e; an HTML
+    // report with traces holds the minified trace viewer
+    ignores: [
+      'dist/**',
+      'coverage/**',
+      'node_modules/**',
+      '*.min.js',
+      'docs/**',
+      'tests/e2e/playwright-report/**',
+      'tests/e2e/test-results/**',
+    ],
   },
 ];

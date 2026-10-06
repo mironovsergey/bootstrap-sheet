@@ -65,7 +65,7 @@ bootstrap-sheet/
 │   ├── js/             # TypeScript source files
 │   └── scss/           # Sass source files
 ├── dist/               # Built files (generated): JS bundles, CSS, type declarations
-├── tests/              # Test files (plain JavaScript, run against the public API)
+├── tests/              # Unit tests in plain JavaScript; end-to-end tests in TypeScript (tests/e2e)
 └── docs/               # Documentation
 ```
 
@@ -75,9 +75,11 @@ bootstrap-sheet/
 - `npm run build` - Build production files (JS bundles, CSS, type declarations)
 - `npm test` - Run test suite
 - `npm run test:artifacts` - Smoke-test the built package in `dist/` (run `npm run build` first)
+- `npm run test:e2e` - Run the end-to-end tests of the built package in emulated phones on Chromium, WebKit and Firefox, and in desktop Chromium (run `npm run build` first, and `npx playwright install` once to download the browsers)
+- `npm run test:e2e:docker` - Run the same tests in the Playwright Docker image, on Linux as in CI (run `npm run build` first; needs Docker and a POSIX shell)
 - `npm run lint:package` - Check the package manifest, entry points and type declarations with publint and Are the Types Wrong (run `npm run build` first)
 - `npm run size` - Check the built bundles against the size budget in `.size-limit.js` (run `npm run build` first)
-- `npm run check:types` - Type-check the sources with the TypeScript compiler
+- `npm run check:types` - Type-check the sources and the end-to-end tests with the TypeScript compiler
 - `npm run lint` - Run ESLint
 - `npm run format` - Format code with Prettier
 
@@ -171,13 +173,27 @@ npm run test:unit:coverage
 # Smoke-test the built package: ES module, UMD bundle, tree-shaking
 npm run build
 npm run test:artifacts
+
+# End-to-end tests of the built package in real browsers
+npx playwright install
+npm run test:e2e
+```
+
+CI runs the end-to-end tests on Linux. `npm run test:e2e:docker` runs them in
+the same environment locally, in the Playwright Docker image of the version
+installed in `node_modules`; arguments after `--` reach Playwright:
+
+```bash
+npm run test:e2e:docker -- --project=mobile-firefox
 ```
 
 #### Writing Tests
 
 - Write tests for all new features
-- Tests are plain JavaScript and exercise the component through its public
-  API - internal refactoring must not require rewriting them
+- Unit tests are plain JavaScript and exercise the component through its
+  public API - internal refactoring must not require rewriting them
+- End-to-end tests are TypeScript, live in `tests/e2e`, and check what only a
+  real browser shows: layout, gestures, scrolling, focus
 - Maintain test coverage above 90%
 - Test edge cases and error conditions
 - Use descriptive test names
