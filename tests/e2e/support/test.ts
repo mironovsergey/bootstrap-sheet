@@ -14,9 +14,12 @@ interface SheetFixtures {
   sheetPage: SheetPage;
 
   /**
-   * Gesture performed with the input the project stands for: a finger where
-   * Playwright can drive real touch input, the mouse everywhere else
+   * Input the project stands for: a finger where Playwright can drive real
+   * touch input, which is Chromium with touch support, the mouse elsewhere
    */
+  pointerKind: 'mouse' | 'touch';
+
+  /** Gesture performed with the input the project stands for */
   gesture: Gesture;
 }
 
@@ -28,8 +31,12 @@ export const test = base.extend<SheetFixtures>({
     await use(new SheetPage(page));
   },
 
-  gesture: async ({ page, browserName, hasTouch }, use) => {
-    if (browserName === 'chromium' && hasTouch) {
+  pointerKind: async ({ browserName, hasTouch }, use) => {
+    await use(browserName === 'chromium' && hasTouch ? 'touch' : 'mouse');
+  },
+
+  gesture: async ({ page, pointerKind }, use) => {
+    if (pointerKind === 'touch') {
       const session = await page.context().newCDPSession(page);
 
       await use(new Gesture(page, new TouchInput(session)));
