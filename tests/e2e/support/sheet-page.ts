@@ -18,6 +18,9 @@ export default class SheetPage {
   /** Header of the sheet, a part with no controls of its own to drag from */
   readonly header: Locator;
 
+  /** Body of the sheet, which scrolls when its content overflows */
+  readonly body: Locator;
+
   /** The backdrop, present in the document only while the sheet is shown */
   readonly backdrop: Locator;
 
@@ -31,6 +34,7 @@ export default class SheetPage {
     this.page = page;
     this.sheet = page.locator('#sheet');
     this.header = this.sheet.locator('.sheet-header');
+    this.body = this.sheet.locator('.sheet-body');
     this.backdrop = page.locator('.sheet-backdrop');
     this.trigger = page.locator('#open');
   }
@@ -127,6 +131,24 @@ export default class SheetPage {
    */
   async backdropOpacity(): Promise<number> {
     return this.backdrop.evaluate((element) => Number(window.getComputedStyle(element).opacity));
+  }
+
+  /**
+   * Vertical scroll position of the sheet body
+   * @returns Scroll offset in pixels
+   */
+  async bodyScrollTop(): Promise<number> {
+    return this.body.evaluate((element) => element.scrollTop);
+  }
+
+  /**
+   * Scroll the sheet body to a position, as a script would
+   * @param scrollTop - Scroll offset in pixels
+   */
+  async scrollBodyTo(scrollTop: number): Promise<void> {
+    await this.body.evaluate((element, offset) => {
+      element.scrollTop = offset;
+    }, scrollTop);
   }
 
   /**

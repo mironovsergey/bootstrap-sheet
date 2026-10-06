@@ -41,18 +41,22 @@ export default class Gesture {
   }
 
   /**
-   * Put the pointer down at the center of an element
+   * Put the pointer down on an element
    * @param target - Element to press
+   * @param position - Point relative to the top left corner of the element;
+   * its center when omitted
    */
-  async start(target: Locator): Promise<void> {
+  async start(target: Locator, position?: { x: number; y: number }): Promise<void> {
     const box = await target.boundingBox();
 
     if (box === null) {
       throw new Error('The gesture target is not rendered.');
     }
 
-    this.#x = box.x + box.width / 2;
-    this.#y = box.y + box.height / 2;
+    this.#x = box.x + (position?.x ?? box.width / 2);
+    this.#y = box.y + (position?.y ?? box.height / 2);
+
+    this.#assertInViewport(this.#x, this.#y);
 
     await this.#input.press(this.#x, this.#y);
   }
