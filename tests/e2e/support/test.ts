@@ -21,6 +21,13 @@ interface SheetFixtures {
 
   /** Gesture performed with the input the project stands for */
   gesture: Gesture;
+
+  /**
+   * Key that moves focus to the next control. Safari, and WebKit with it,
+   * moves only between form fields on Tab by default, while Option+Tab
+   * reaches every control.
+   */
+  tabKey: 'Alt+Tab' | 'Tab';
 }
 
 /**
@@ -46,5 +53,9 @@ export const test = base.extend<SheetFixtures>({
     }
 
     await use(new Gesture(page, new MouseInput(page.mouse)));
+  },
+
+  tabKey: async ({ browserName }, use) => {
+    await use(browserName === 'webkit' ? 'Alt+Tab' : 'Tab');
   },
 });
