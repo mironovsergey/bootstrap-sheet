@@ -51,13 +51,13 @@ test.describe('Gestures', () => {
 
   test('should close on a quick downward flick', async ({ sheetPage, gesture }) => {
     // 120 px is well short of halfway, 210 px: released without velocity the
-    // sheet would spring back. Steps of 30 px carry it past halfway as long
-    // as consecutive steps reach the page less than 100 ms apart, the window
-    // velocity is measured over; touch input through the DevTools protocol
-    // takes up to about 50 ms per step.
+    // sheet would spring back. Velocity is measured over the last 100 ms, so
+    // the last two steps and the release have to fall within that window;
+    // lifting the pointer with the last step, as a flick does, leaves the
+    // window to the one step before it, even when touch input through the
+    // DevTools protocol is slow to arrive.
     await gesture.start(sheetPage.header);
-    await gesture.moveBy(0, 120, { steps: 4 });
-    await gesture.end();
+    await gesture.flick(0, 120, 4);
 
     await sheetPage.expectHidden();
   });

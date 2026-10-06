@@ -28,4 +28,9 @@ export default class MouseInput implements PointerInput {
   async release(): Promise<void> {
     await this.#mouse.up();
   }
+
+  async moveAndRelease(x: number, y: number): Promise<void> {
+    await this.#mouse.move(x, y);
+    await this.#mouse.up();
+  }
 }

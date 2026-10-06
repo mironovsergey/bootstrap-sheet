@@ -12,4 +12,10 @@ export default interface PointerInput {
 
   /** Lift the pointer where it is */
   release(): Promise<void>;
+
+  /**
+   * Move the pointer to a point and lift it there with as little delay in
+   * between as the input allows, as at the end of a flick
+   */
+  moveAndRelease(x: number, y: number): Promise<void>;
 }
