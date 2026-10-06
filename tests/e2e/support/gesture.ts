@@ -90,6 +90,30 @@ export default class Gesture {
   }
 
   /**
+   * Move the pointer by an offset in equal steps and lift it with the last
+   * step, while it is still moving, as a flick does
+   * @param deltaX - Horizontal offset (px)
+   * @param deltaY - Vertical offset (px), positive downwards
+   * @param steps - Number of equal steps
+   */
+  async flick(deltaX: number, deltaY: number, steps = 4): Promise<void> {
+    const stepX = deltaX / steps;
+    const stepY = deltaY / steps;
+
+    await this.moveBy(stepX * (steps - 1), stepY * (steps - 1), { steps: steps - 1 });
+
+    const targetX = this.#x + stepX;
+    const targetY = this.#y + stepY;
+
+    this.#assertInViewport(targetX, targetY);
+
+    this.#x = targetX;
+    this.#y = targetY;
+
+    await this.#input.moveAndRelease(targetX, targetY);
+  }
+
+  /**
    * Keep the pointer still. Velocity is measured over the last 100 ms of
    * movement, so holding still longer than that releases with no velocity.
    * @param duration - How long to hold (ms)

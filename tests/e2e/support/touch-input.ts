@@ -40,4 +40,23 @@ export default class TouchInput implements PointerInput {
       touchPoints: [],
     });
   }
+
+  /**
+   * Sends the release right behind the move instead of waiting until the page
+   * has handled the move: the browser processes the commands in order, and
+   * the finger leaves the screen within the frame of its last movement, as it
+   * does at the end of a real flick.
+   */
+  async moveAndRelease(x: number, y: number): Promise<void> {
+    await Promise.all([
+      this.#session.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x, y }],
+      }),
+      this.#session.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      }),
+    ]);
+  }
 }
