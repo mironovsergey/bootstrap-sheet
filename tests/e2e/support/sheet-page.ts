@@ -134,6 +134,47 @@ export default class SheetPage {
   }
 
   /**
+   * Detent the sheet rests at, as the component reports it
+   * @returns A value from the `detents` option
+   */
+  async currentDetent(): Promise<number> {
+    return this.page.evaluate(() => {
+      const instance = window.BootstrapSheet.getInstance('#sheet');
+
+      if (instance === null) {
+        throw new Error('The sheet has no instance.');
+      }
+
+      return instance.currentDetent;
+    });
+  }
+
+  /**
+   * Move the sheet to a detent through the public API
+   * @param detent - A value from the `detents` option
+   */
+  async setDetent(detent: number): Promise<void> {
+    await this.page.evaluate((target) => {
+      const instance = window.BootstrapSheet.getInstance('#sheet');
+
+      if (instance === null) {
+        throw new Error('The sheet has no instance.');
+      }
+
+      instance.setDetent(target);
+    }, detent);
+  }
+
+  /**
+   * Computed `touch-action` of the sheet, which tells the browser which
+   * touch gestures it may handle natively
+   * @returns The computed value
+   */
+  async touchAction(): Promise<string> {
+    return this.sheet.evaluate((element) => window.getComputedStyle(element).touchAction);
+  }
+
+  /**
    * Vertical scroll position of the sheet body
    * @returns Scroll offset in pixels
    */

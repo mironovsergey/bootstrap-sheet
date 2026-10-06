@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Detents</title>
+    <link rel="stylesheet" href="/dist/css/bootstrap-sheet.css" />
+    <style>
+      /* At the 0.4 detent 200 px show and the sheet rests 300 px down */
+      #sheet {
+        height: 500px;
+      }
+
+      /* Overflows the sheet body, so that the body could scroll */
+      .long-content {
+        height: 2000px;
+        background: linear-gradient(#fff, #ccc);
+      }
+    </style>
+  </head>
+  <body>
+    <button type="button" id="open" data-bs-toggle="sheet" data-bs-target="#sheet">
+      Open sheet
+    </button>
+
+    <div class="sheet" id="sheet" aria-labelledby="sheet-title" data-bs-detents="0.4,1">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h2 class="sheet-title" id="sheet-title">Detents</h2>
+        <button type="button" data-bs-dismiss="sheet">Close</button>
+      </div>
+      <div class="sheet-body">
+        <div class="long-content">Long content</div>
+      </div>
+    </div>
+
+    <script type="module" src="/dist/js/bootstrap-sheet.esm.js"></script>
+  </body>
+</html>
