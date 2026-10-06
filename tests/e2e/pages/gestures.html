@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gestures</title>
+    <link rel="stylesheet" href="/dist/css/bootstrap-sheet.css" />
+    <style>
+      /* Tall enough to drag well past half of it, short enough for any phone */
+      #sheet {
+        height: 420px;
+      }
+
+      #no-drag {
+        padding: 1rem;
+        border: 1px dashed #999;
+      }
+    </style>
+  </head>
+  <body>
+    <button type="button" id="open" data-bs-toggle="sheet" data-bs-target="#sheet">
+      Open sheet
+    </button>
+
+    <div class="sheet" id="sheet" aria-labelledby="sheet-title">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h2 class="sheet-title" id="sheet-title">Gestures</h2>
+        <button type="button" data-bs-dismiss="sheet">Close</button>
+      </div>
+      <div class="sheet-body">
+        <p>
+          <button type="button" id="count">Count</button>
+          Clicked <output id="count-value">0</output> times
+        </p>
+        <div id="no-drag" data-bs-drag="false">The sheet cannot be dragged from here</div>
+        <p>
+          <label for="range">Range</label>
+          <input type="range" id="range" min="0" max="100" value="50" />
+        </p>
+        <p id="text">Plain text to drag the sheet by.</p>
+      </div>
+    </div>
+
+    <script type="module">
+      const countButton = document.querySelector('#count');
+      const countValue = document.querySelector('#count-value');
+
+      countButton.addEventListener('click', () => {
+        countValue.value = String(Number(countValue.value) + 1);
+      });
+    </script>
+    <script type="module" src="/dist/js/bootstrap-sheet.esm.js"></script>
+  </body>
+</html>
