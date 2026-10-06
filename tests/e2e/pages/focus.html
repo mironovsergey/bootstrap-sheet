@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Focus</title>
+    <link rel="stylesheet" href="/dist/css/bootstrap-sheet.css" />
+  </head>
+  <body>
+    <!-- The sheet is nested in an application root together with the page
+         content, rather than being a direct child of body -->
+    <div id="app">
+      <header>
+        <button type="button" id="open" data-bs-toggle="sheet" data-bs-target="#sheet">
+          Open sheet
+        </button>
+      </header>
+      <main>
+        <label for="background-input">Background input</label>
+        <input type="text" id="background-input" />
+      </main>
+
+      <div class="sheet" id="sheet" aria-labelledby="sheet-title">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <h2 class="sheet-title" id="sheet-title">Focus</h2>
+          <button type="button" id="close" data-bs-dismiss="sheet">Close</button>
+        </div>
+        <div class="sheet-body">
+          <label for="sheet-input">Sheet input</label>
+          <input type="text" id="sheet-input" />
+        </div>
+        <div class="sheet-footer">
+          <button type="button" id="done">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/dist/js/bootstrap-sheet.esm.js"></script>
+  </body>
+</html>

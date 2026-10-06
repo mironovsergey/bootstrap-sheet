@@ -56,6 +56,17 @@ export default class SheetPage {
   }
 
   /**
+   * Open the sheet from the keyboard: focus the trigger and press Enter.
+   * Unlike a click, this leaves the trigger focused in every browser, Safari
+   * included, which does not focus a button it clicks.
+   */
+  async openWithKeyboard(): Promise<void> {
+    await this.trigger.focus();
+    await this.page.keyboard.press('Enter');
+    await this.expectShown();
+  }
+
+  /**
    * Wait until the sheet has settled open: the `show` class is added only
    * when the opening animation comes to rest
    */
@@ -81,6 +92,19 @@ export default class SheetPage {
     await this.page.evaluate(
       () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
     );
+  }
+
+  /**
+   * Try to focus an element from a script
+   * @param target - Element to focus
+   * @returns Whether the element took focus; an inert one does not
+   */
+  async canFocus(target: Locator): Promise<boolean> {
+    return target.evaluate((element) => {
+      element.focus();
+
+      return document.activeElement === element;
+    });
   }
 
   /**
