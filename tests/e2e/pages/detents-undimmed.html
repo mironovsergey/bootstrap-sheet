@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Undimmed detent</title>
+    <link rel="stylesheet" href="/dist/css/bootstrap-sheet.css" />
+    <style>
+      /* At the 0.4 detent 200 px show and the sheet rests 300 px down */
+      #sheet {
+        height: 500px;
+      }
+    </style>
+  </head>
+  <body>
+    <button type="button" id="open" data-bs-toggle="sheet" data-bs-target="#sheet">
+      Open sheet
+    </button>
+    <p>
+      <button type="button" id="count">Count</button>
+      Clicked <output id="count-value">0</output> times
+    </p>
+
+    <div
+      class="sheet"
+      id="sheet"
+      aria-labelledby="sheet-title"
+      data-bs-detents="0.4,1"
+      data-bs-undimmed-detent="0.4"
+    >
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h2 class="sheet-title" id="sheet-title">Undimmed detent</h2>
+        <button type="button" data-bs-dismiss="sheet">Close</button>
+      </div>
+      <div class="sheet-body">
+        <p>Sheet content.</p>
+      </div>
+    </div>
+
+    <script type="module">
+      const countButton = document.querySelector('#count');
+      const countValue = document.querySelector('#count-value');
+
+      countButton.addEventListener('click', () => {
+        countValue.value = String(Number(countValue.value) + 1);
+      });
+    </script>
+    <script type="module" src="/dist/js/bootstrap-sheet.esm.js"></script>
+  </body>
+</html>
