@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { test as base } from '@playwright/test';
 import Gesture from './gesture';
 import MouseInput from './mouse-input';
@@ -28,6 +29,13 @@ interface SheetFixtures {
    * reaches every control.
    */
   tabKey: 'Alt+Tab' | 'Tab';
+
+  /**
+   * Creates an axe analysis of the page, set up with the rules every
+   * accessibility check uses: WCAG 2.2 levels A and AA, and best practices,
+   * which include that a dialog has an accessible name
+   */
+  makeAxeBuilder: () => AxeBuilder;
 }
 
 /**
@@ -57,5 +65,18 @@ export const test = base.extend<SheetFixtures>({
 
   tabKey: async ({ browserName }, use) => {
     await use(browserName === 'webkit' ? 'Alt+Tab' : 'Tab');
+  },
+
+  makeAxeBuilder: async ({ page }, use) => {
+    await use(() =>
+      new AxeBuilder({ page }).withTags([
+        'wcag2a',
+        'wcag2aa',
+        'wcag21a',
+        'wcag21aa',
+        'wcag22aa',
+        'best-practice',
+      ]),
+    );
   },
 });
