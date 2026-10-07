@@ -193,7 +193,8 @@ npm run test:e2e:docker -- --project=mobile-firefox
 - Unit tests are plain JavaScript and exercise the component through its
   public API - internal refactoring must not require rewriting them
 - End-to-end tests are TypeScript, live in `tests/e2e`, and check what only a
-  real browser shows: layout, gestures, scrolling, focus
+  real browser shows: layout, gestures, scrolling, focus, and accessibility
+  with axe
 - Maintain test coverage above 90%
 - Test edge cases and error conditions
 - Use descriptive test names
