@@ -101,3 +101,48 @@ jobs:
           name: build-artifacts
           path: dist/
           retention-days: 7
+
+  e2e:
+    name: End-to-end tests
+    # Tests the build the job above produced and checked, instead of building
+    # the package a second time
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: build-artifacts
+          path: dist
+
+      # Not cached: restoring the browsers takes about as long as downloading
+      # them, and the system libraries they need are installed either way
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Run end-to-end tests
+        run: npm run test:e2e
+
+      # Kept for passing runs too: the report also lists tests that passed only
+      # on a retry
+      - name: Upload test report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: tests/e2e/playwright-report/
+          retention-days: 7
