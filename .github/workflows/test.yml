@@ -146,3 +146,18 @@ jobs:
           name: playwright-report
           path: tests/e2e/playwright-report/
           retention-days: 7
+
+  actionlint:
+    name: Lint workflows
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # The official image bundles shellcheck, which also checks the scripts
+      # in run steps. The version is pinned and raised by hand.
+      - name: Check workflow files
+        uses: docker://rhysd/actionlint:1.7.12
+        with:
+          args: -color
