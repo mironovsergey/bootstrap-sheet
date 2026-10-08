@@ -863,6 +863,111 @@ describe('BootstrapSheet - Focus Management', () => {
       expect(isHidden(outside)).toBe(true);
       expect(isHidden(sheet)).toBe(false);
     });
+
+    describe('with native inert support', () => {
+      // Every browser in the support matrix has `inert`, and the component
+      // prefers it to aria-hidden there. jsdom has none, so these tests
+      // emulate it as a property reflecting the attribute, which is all the
+      // component reads and writes; its inheritance, which jsdom does not
+      // implement either, is not what is tested here.
+      beforeAll(() => {
+        Object.defineProperty(HTMLElement.prototype, 'inert', {
+          configurable: true,
+          get() {
+            return this.hasAttribute('inert');
+          },
+          set(value) {
+            this.toggleAttribute('inert', Boolean(value));
+          },
+        });
+      });
+
+      afterAll(() => {
+        delete HTMLElement.prototype.inert;
+      });
+
+      test('should make the page inert rather than hide it with aria-hidden', async () => {
+        const outside = document.createElement('main');
+        document.body.appendChild(outside);
+
+        const sheet = createSheet();
+        const instance = new BootstrapSheet(sheet, { backdrop: true });
+
+        instance.show();
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        expect(outside.inert).toBe(true);
+        expect(outside.hasAttribute('aria-hidden')).toBe(false);
+        expect(sheet.inert).toBe(false);
+      });
+
+      test('should keep the ancestors of a nested sheet usable', async () => {
+        const { wrapper, sheet } = createNestedSheet();
+
+        const neighbour = document.createElement('div');
+        wrapper.appendChild(neighbour);
+
+        const instance = new BootstrapSheet(sheet, { backdrop: true });
+
+        instance.show();
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        expect(wrapper.inert).toBe(false);
+        expect(neighbour.inert).toBe(true);
+        expect(sheet.closest('[inert]')).toBeNull();
+      });
+
+      test('should give the page back once closed', async () => {
+        const outside = document.createElement('main');
+        document.body.appendChild(outside);
+
+        const sheet = createSheet();
+        const instance = new BootstrapSheet(sheet, { backdrop: true });
+
+        instance.show();
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        instance.hide();
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        expect(outside.inert).toBe(false);
+      });
+
+      test('should leave content that was inert before opening inert once closed', async () => {
+        const alreadyInert = document.createElement('aside');
+        alreadyInert.inert = true;
+        document.body.appendChild(alreadyInert);
+
+        const sheet = createSheet();
+        const instance = new BootstrapSheet(sheet, { backdrop: true });
+
+        instance.show();
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        instance.hide();
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        expect(alreadyInert.inert).toBe(true);
+      });
+
+      test('should hide SVG content, which has no inert, with aria-hidden', async () => {
+        const graphic = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        document.body.appendChild(graphic);
+
+        const sheet = createSheet();
+        const instance = new BootstrapSheet(sheet, { backdrop: true });
+
+        instance.show();
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        expect(graphic.getAttribute('aria-hidden')).toBe('true');
+
+        instance.hide();
+        await advanceTimersAndFlush(TRANSITION_WAIT);
+
+        expect(graphic.hasAttribute('aria-hidden')).toBe(false);
+      });
+    });
   });
 
   describe('Integration with other features', () => {
