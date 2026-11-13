@@ -177,7 +177,8 @@
   "overrides": {
     "concurrently": {
       "shell-quote": "^1.11.0"
-    }
+    },
+    "playwright-core": "$@playwright/test"
   },
   "devEngines": {
     "runtime": {
